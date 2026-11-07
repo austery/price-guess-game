@@ -1,16 +1,14 @@
 // Countdown music, synthesized in the browser with the Web Audio API.
 // No audio files, no downloads, nothing touches the server.
 //
-// Two styles (pick with DEFAULT_MUSIC below):
-//  - "jingle-bells": the chorus of Jingle Bells (1857, public domain) on bells with sleigh bells
-//    and an oom-pah bass. Its 32 beats are stretched to exactly fill the countdown, so the song
-//    ends right as time runs out. A ticking clock joins for the last 5 seconds.
-//  - "tick-tock": game-show thinking music (Am - F - C - G) with a riser in the last 5 seconds.
-// Both end with a buzzer at 0.
+// Each round plays a different traditional Christmas song (all public domain), arranged as a
+// bouncy up-tempo band: melody, "boom-chick" drums, walking oom-pah bass, off-beat chord stabs
+// and sleigh bells. A ticking clock joins for the last 5 seconds; a buzzer sounds at 0.
+// Set DEFAULT_MUSIC = "tick-tock" for the plain game-show thinking music instead.
 
-export const DEFAULT_MUSIC = "jingle-bells";
+export const DEFAULT_MUSIC = "christmas";
 
-const BEAT = 0.5; // seconds (120 bpm)
+const BEAT = 0.5; // tick-tock style: seconds per beat (120 bpm)
 const BASS = [110.0, 87.31, 130.81, 98.0]; // A2 F2 C3 G2
 const CHORDS = [
   [220.0, 261.63, 329.63], // Am
@@ -33,32 +31,101 @@ function tone(ctx, out, { type = "sine", freq, endFreq, start, dur, gain = 0.2, 
   o.stop(start + dur + 0.05);
 }
 
-/** Schedule `seconds` of countdown music ending exactly at t0 + seconds, then the buzzer. */
-export function scheduleCountdown(ctx, out, t0, seconds, style = DEFAULT_MUSIC) {
-  return (style === "tick-tock" ? scheduleTickTock : scheduleJingleBells)(ctx, out, t0, seconds);
+/**
+ * Schedule `seconds` of countdown music ending exactly at t0 + seconds, then the buzzer.
+ * `song` picks the Christmas song (any integer; it wraps around).
+ */
+export function scheduleCountdown(ctx, out, t0, seconds, song = 0, style = DEFAULT_MUSIC) {
+  if (style === "tick-tock") return scheduleTickTock(ctx, out, t0, seconds);
+  return scheduleSong(ctx, out, t0, seconds, SONGS[((song % SONGS.length) + SONGS.length) % SONGS.length]);
 }
 
-// ---------- Jingle Bells ----------
+// ---------- Christmas songs (traditional / public domain) ----------
+// melody: "NOTE:beats" tokens ("|" = bar line, ignored; default length 1 beat). pickup = beats before bar 1.
+export const SONGS = [
+  {
+    name: "Jingle Bells", key: "G", minor: false, bpm: 200, beatsPerBar: 4, pickup: 0,
+    melody: `B4 B4 B4:2 | B4 B4 B4:2 | B4 D5 G4:1.5 A4:0.5 | B4:4 | C5 C5 C5:1.5 C5:0.5 | C5 B4 B4 B4:0.5 B4:0.5 |
+             B4 A4 A4 B4 | A4:2 D5:2 | B4 B4 B4:2 | B4 B4 B4:2 | B4 D5 G4:1.5 A4:0.5 | B4:4 |
+             C5 C5 C5:1.5 C5:0.5 | C5 B4 B4 B4:0.5 B4:0.5 | D5 D5 C5 A4 | G4:4`,
+  },
+  {
+    name: "Deck the Halls", key: "F", minor: false, bpm: 184, beatsPerBar: 4, pickup: 0,
+    melody: `C5:1.5 Bb4:0.5 A4 G4 | F4 G4 A4 F4 | G4:0.5 A4:0.5 Bb4:0.5 G4:0.5 A4:1.5 G4:0.5 | F4 E4 F4:2 |
+             C5:1.5 Bb4:0.5 A4 G4 | F4 G4 A4 F4 | G4:0.5 A4:0.5 Bb4:0.5 G4:0.5 A4:1.5 G4:0.5 | F4 E4 F4:2 |
+             G4:1.5 A4:0.5 Bb4 G4 | A4:1.5 Bb4:0.5 C5 G4 | A4:0.5 B4:0.5 C5 D5:0.5 E5:0.5 F5 | E5 D5 C5:2 |
+             C5:1.5 Bb4:0.5 A4 G4 | F4 G4 A4 F4 | D5:0.5 D5:0.5 D5:0.5 D5:0.5 C5:1.5 Bb4:0.5 | A4 G4 F4:2`,
+  },
+  {
+    name: "We Wish You a Merry Christmas", key: "G", minor: false, bpm: 200, beatsPerBar: 3, pickup: 1,
+    melody: `D4 | G4 G4:0.5 A4:0.5 G4:0.5 F#4:0.5 | E4 E4 E4 | A4 A4:0.5 B4:0.5 A4:0.5 G4:0.5 | F#4 D4 D4 |
+             B4 B4:0.5 C5:0.5 B4:0.5 A4:0.5 | G4 E4 D4:0.5 D4:0.5 | E4 A4 F#4 | G4:2`,
+  },
+  {
+    name: "God Rest Ye Merry Gentlemen", key: "E", minor: true, bpm: 184, beatsPerBar: 4, pickup: 1,
+    melody: `E4 | E4 B4 B4 A4 | G4 F#4 E4 D4 | E4 F#4 G4 A4 | B4:3`,
+  },
+  {
+    name: "Good King Wenceslas", key: "G", minor: false, bpm: 184, beatsPerBar: 4, pickup: 0,
+    melody: `G4 G4 G4 A4 | G4 G4 D4:2 | E4 D4 E4 F#4 | G4:2 G4:2 | G4 G4 G4 A4 | G4 G4 D4:2 | E4 D4 E4 F#4 | G4:2 G4:2 |
+             D5 C5 B4 A4 | B4 A4 G4:2 | E4 D4 E4 F#4 | G4:2 G4:2 | D4 D4 E4 F#4 | G4 G4 A4:2 | D5 C5 B4 A4 | G4:2 C5:2 | G4:4`,
+  },
+  {
+    name: "Joy to the World", key: "D", minor: false, bpm: 168, beatsPerBar: 4, pickup: 0,
+    melody: `D5 C#5:0.75 B4:0.25 A4:1.5 G4:0.5 | F#4 E4 D4:1.5 A4:0.5 | B4:1.5 B4:0.5 C#5:1.5 C#5:0.5 | D5:3 R:1`,
+  },
+];
 
-const N = { G2: 98.0, C3: 130.81, D3: 146.83, G3: 196.0, B3: 246.94, C4: 261.63, D4: 293.66, E4: 329.63,
-  Fs4: 369.99, G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25, D5: 587.33 };
-// Chorus: "Jingle bells, jingle bells, jingle all the way" + "...in a one-horse open sleigh". [note, beats]
-const MELODY = [
-  ["B4", 1], ["B4", 1], ["B4", 2],
-  ["B4", 1], ["B4", 1], ["B4", 2],
-  ["B4", 1], ["D5", 1], ["G4", 1.5], ["A4", 0.5],
-  ["B4", 4],
-  ["C5", 1], ["C5", 1], ["C5", 1.5], ["C5", 0.5],
-  ["C5", 1], ["B4", 1], ["B4", 1], ["B4", 0.5], ["B4", 0.5],
-  ["D5", 1], ["D5", 1], ["C5", 1], ["A4", 1],
-  ["G4", 4],
-];
-// One chord per bar: bass root + "pah" chord on beats 2 and 4.
-const BARS = [
-  ["G2", ["G3", "B3", "D4"]], ["G2", ["G3", "B3", "D4"]], ["G2", ["G3", "B3", "D4"]], ["G2", ["G3", "B3", "D4"]],
-  ["C3", ["C4", "E4", "G4"]], ["G2", ["G3", "B3", "D4"]], ["D3", ["D4", "Fs4", "A4"]], ["G2", ["G3", "B3", "D4"]],
-];
-const SONG_BEATS = 32;
+const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+function midi(name) {
+  const m = /^([A-G])([#b]?)(\d)$/.exec(name);
+  return PC[m[1]] + (m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0) + 12 * (Number(m[3]) + 1);
+}
+const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+
+export function parseMelody(text) {
+  return text
+    .split(/\s+/)
+    .filter((t) => t && t !== "|")
+    .map((t) => {
+      const [n, d] = t.split(":");
+      return { note: n === "R" ? null : midi(n), beats: d ? Number(d) : 1 };
+    });
+}
+
+/** Pick a triad per bar from the key's primary chords, matching the melody notes in that bar. */
+function harmonize(song, notes) {
+  const tonic = PC[song.key[0]] + (song.key[1] === "#" ? 1 : song.key[1] === "b" ? -1 : 0);
+  // [semitones above tonic, minor?] in order of preference
+  const pool = song.minor
+    ? [[0, true], [7, false], [5, true], [3, false], [10, false]] // i V iv III VII
+    : [[0, false], [7, false], [5, false], [9, true]]; // I V IV vi
+  const triad = ([r, mi]) => [r, r + (mi ? 3 : 4), r + 7].map((x) => (tonic + x) % 12);
+  const total = notes.reduce((a, n) => a + n.beats, 0);
+  const bars = Math.ceil((total - song.pickup) / song.beatsPerBar - 1e-9) + 1;
+  const chords = [];
+  for (let b = 0; b < bars; b++) {
+    const from = song.pickup + (b - 1) * song.beatsPerBar; // bar 0 = the pickup bar
+    const to = from + song.beatsPerBar;
+    const weight = new Map();
+    let t = 0;
+    for (const n of notes) {
+      const s = Math.max(t, from), e = Math.min(t + n.beats, to);
+      if (n.note !== null && e > s) weight.set(n.note % 12, (weight.get(n.note % 12) ?? 0) + (e - s));
+      t += n.beats;
+    }
+    let best = pool[0], bestScore = -1;
+    for (const c of pool) {
+      const tri = triad(c);
+      const score = [...weight].reduce((a, [pc, w]) => a + (tri.includes(pc) ? w : 0), 0);
+      if (score > bestScore + 1e-9) (best = c), (bestScore = score);
+    }
+    const [r, mi] = best;
+    const rootPc = (tonic + r) % 12;
+    chords.push({ root: rootPc, third: (rootPc + (mi ? 3 : 4)) % 12, fifth: (rootPc + 7) % 12 });
+  }
+  return { chords, from: (beat) => Math.floor((beat - song.pickup) / song.beatsPerBar) + 1 };
+}
 
 const noiseCache = new WeakMap();
 function noiseBuffer(ctx) {
@@ -71,52 +138,91 @@ function noiseBuffer(ctx) {
   return noiseCache.get(ctx);
 }
 
-function sleighBell(ctx, out, t, gain) {
+function noiseHit(ctx, out, t, { type = "highpass", freq = 7000, q = 0.7, dur = 0.12, gain = 0.1 }) {
   const src = ctx.createBufferSource();
   src.buffer = noiseBuffer(ctx);
-  const hp = ctx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 7000;
+  const f = ctx.createBiquadFilter();
+  f.type = type;
+  f.frequency.value = freq;
+  f.Q.value = q;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-  src.connect(hp).connect(g).connect(out);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(g).connect(out);
   src.start(t);
-  src.stop(t + 0.15);
+  src.stop(t + dur + 0.02);
 }
 
-/** Bell / celesta-like note: a few sine partials with a quick attack and long decay. */
-function bell(ctx, out, freq, t, beats, beat, gain) {
-  const ring = Math.min(1.6, Math.max(0.35, beats * beat * 1.1));
-  tone(ctx, out, { freq, start: t, dur: ring, gain, attack: 0.004 });
-  tone(ctx, out, { freq: freq * 2, start: t, dur: ring * 0.6, gain: gain * 0.35, attack: 0.003 });
-  tone(ctx, out, { freq: freq * 3.01, start: t, dur: ring * 0.3, gain: gain * 0.12, attack: 0.002 });
+function kick(ctx, out, t) {
+  tone(ctx, out, { freq: 150, endFreq: 45, start: t, dur: 0.16, gain: 0.55, attack: 0.002 });
 }
 
-export function scheduleJingleBells(ctx, out, t0, seconds) {
+/** Bright brassy lead ("ba-ba-ba") doubled by a bell for sparkle. */
+function lead(ctx, out, freq, t, dur) {
+  const o = ctx.createOscillator();
+  const f = ctx.createBiquadFilter();
+  const g = ctx.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(freq, t);
+  f.type = "lowpass";
+  f.frequency.setValueAtTime(3800, t);
+  f.frequency.exponentialRampToValueAtTime(1400, t + Math.max(0.08, dur));
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.11, t + 0.01);
+  g.gain.setValueAtTime(0.09, t + Math.max(0.02, dur - 0.03));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.04);
+  o.connect(f).connect(g).connect(out);
+  o.start(t);
+  o.stop(t + dur + 0.08);
+  tone(ctx, out, { freq: freq * 2, start: t, dur: Math.min(0.6, dur + 0.25), gain: 0.05, attack: 0.003 });
+}
+
+function scheduleSong(ctx, songOut, t0, seconds, song) {
+  const out = ctx.createGain(); // the full band is louder than the old tick-tock: keep headroom
+  out.gain.value = 0.6;
+  out.connect(songOut);
   const end = t0 + seconds;
-  const beat = seconds / SONG_BEATS; // 15 s -> 128 bpm
-  // melody
-  let b = 0;
-  for (const [note, len] of MELODY) {
-    bell(ctx, out, N[note], t0 + b * beat, len, beat, 0.18);
-    b += len;
+  const beat = 60 / song.bpm;
+  const notes = parseMelody(song.melody);
+  const loopBeats = notes.reduce((a, n) => a + n.beats, 0);
+  const { chords, from: barOf } = harmonize(song, notes);
+  const clip = (t, d) => Math.max(0.02, Math.min(d, end - t - 0.01));
+
+  // melody, looping if the song is shorter than the countdown
+  for (let b = 0, i = 0; t0 + b * beat < end - 0.05; i = (i + 1) % notes.length) {
+    const n = notes[i];
+    const t = t0 + b * beat;
+    if (n.note !== null) lead(ctx, out, hz(n.note), t, clip(t, n.beats * beat * (n.beats <= 1 ? 0.78 : 0.9)));
+    b += n.beats;
   }
-  // accompaniment + sleigh bells
-  for (let k = 0; k < SONG_BEATS; k++) {
+
+  // band: per beat
+  const totalBeats = Math.floor(seconds / beat + 1e-6);
+  for (let k = 0; k < totalBeats; k++) {
     const t = t0 + k * beat;
-    const [root, chord] = BARS[Math.floor(k / 4)];
-    const left = end - t;
-    if (k % 2 === 0) tone(ctx, out, { type: "triangle", freq: N[root], start: t, dur: beat * 0.9, gain: 0.3, attack: 0.01 });
-    else for (const n of chord) tone(ctx, out, { type: "triangle", freq: N[n], start: t, dur: beat * 0.5, gain: 0.045, attack: 0.01 });
-    sleighBell(ctx, out, t, 0.18);
-    sleighBell(ctx, out, t + beat / 2, 0.09);
-    // last 5 seconds: a ticking clock joins in for tension
-    if (left <= 5 + 1e-6) {
-      tone(ctx, out, { type: "square", freq: 1760, start: t, dur: 0.04, gain: 0.06 });
-      tone(ctx, out, { type: "square", freq: 1568, start: t + beat / 2, dur: 0.035, gain: 0.05 });
+    if (t >= end - 0.02) break;
+    const inLoop = k % loopBeats;
+    const c = chords[Math.min(chords.length - 1, Math.max(0, barOf(inLoop)))];
+    const beatInBar = (((inLoop - song.pickup) % song.beatsPerBar) + song.beatsPerBar) % song.beatsPerBar;
+    const bassPc = beatInBar % 2 === 0 ? c.root : c.fifth;
+    // drums: boom on 1 (and 3), chick on the others
+    if (beatInBar === 0 || (song.beatsPerBar === 4 && beatInBar === 2)) kick(ctx, out, t);
+    else noiseHit(ctx, out, t, { type: "bandpass", freq: 1900, q: 0.9, dur: 0.11, gain: 0.22 });
+    // oom-pah bass
+    tone(ctx, out, { type: "triangle", freq: hz(36 + bassPc + (bassPc < 7 ? 12 : 0)), start: t, dur: clip(t, beat * 0.7), gain: 0.32, attack: 0.008 });
+    // off-beat chord stab
+    const ts = t + beat / 2;
+    if (ts < end - 0.05) {
+      for (const pc of [c.root, c.third, c.fifth]) {
+        tone(ctx, out, { type: "square", freq: hz(60 + pc), start: ts, dur: clip(ts, beat * 0.28), gain: 0.022, attack: 0.004 });
+      }
     }
+    // sleigh bells on eighths
+    noiseHit(ctx, out, t, { gain: 0.09 });
+    if (ts < end - 0.02) noiseHit(ctx, out, ts, { gain: 0.05 });
+    // ticking clock in the last 5 seconds
+    if (end - t <= 5 + 1e-6) tone(ctx, out, { type: "square", freq: 1760, start: t, dur: 0.035, gain: 0.05 });
   }
   scheduleBuzzer(ctx, out, end);
 }
@@ -203,7 +309,14 @@ export function createCountdownSound() {
       ctx = new AC();
       master = ctx.createGain();
       master.gain.value = 1.6;
-      master.connect(ctx.destination);
+      // safety limiter so nothing ever distorts on the venue speakers
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -3;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.002;
+      limiter.release.value = 0.1;
+      master.connect(limiter).connect(ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
@@ -231,13 +344,13 @@ export function createCountdownSound() {
       if (m) stop();
     },
     /** Start music that ends (with the buzzer) in `secondsLeft` seconds. */
-    start(secondsLeft) {
+    start(secondsLeft, song = 0) {
       stop();
       if (muted || secondsLeft <= 0.3 || !ensure()) return;
       const gain = ctx.createGain();
       gain.connect(master);
       const t0 = ctx.currentTime + 0.03;
-      scheduleCountdown(ctx, gain, t0, secondsLeft);
+      scheduleCountdown(ctx, gain, t0, secondsLeft, song);
       run = { gain, end: t0 + secondsLeft };
     },
     /** Round locked. If it ended early (host pressed Stop), cut the music and buzz now. */
