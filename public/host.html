@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Price Guess — Host</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <form id="keyForm" class="key-form hidden">
+    <h2>Host key</h2>
+    <input id="keyInput" type="password" autocomplete="current-password" placeholder="Enter host key" />
+    <button type="submit">Open host screen</button>
+    <div id="keyMsg" class="bad"></div>
+  </form>
+
+  <div id="screen" class="screen hidden">
+    <div class="screen-top">
+      <span id="topLeft"></span>
+      <span><span id="dot" class="status-dot"></span><span id="topRight"></span></span>
+    </div>
+    <div class="screen-main" id="main"></div>
+  </div>
+
+  <div id="controls" class="controls hidden">
+    <button id="primary"></button>
+    <button id="lockBtn" class="secondary hidden">Stop now</button>
+    <span class="msg" id="ctlMsg"></span>
+    <span class="spacer"></span>
+    <span class="muted" style="font-size:13px">Space = main button · H = hide bar</span>
+    <button id="resetRound" class="secondary">Redo round</button>
+    <button id="resetGame" class="danger">Reset game</button>
+  </div>
+
+  <script type="module">
+    import { connect, formatCents, esc, secondsLeft } from "/common.js";
+
+    const params = new URLSearchParams(location.search);
+    let key = params.get("key") || sessionStorage.getItem("pg-host-key") || "";
+    const keyForm = document.getElementById("keyForm");
+
+    async function checkKey(k) {
+      const r = await fetch(`/api/host-check?key=${encodeURIComponent(k)}`);
+      return r.ok;
+    }
+
+    async function boot() {
+      if (key && (await checkKey(key))) {
+        sessionStorage.setItem("pg-host-key", key);
+        if (params.has("key")) history.replaceState(null, "", "/host"); // keep the key out of the address bar
+        return startHost();
+      }
+      keyForm.classList.remove("hidden");
+      if (key) document.getElementById("keyMsg").textContent = "Wrong key.";
+    }
+    keyForm.onsubmit = async (e) => {
+      e.preventDefault();
+      key = document.getElementById("keyInput").value.trim();
+      if (await checkKey(key)) { keyForm.classList.add("hidden"); sessionStorage.setItem("pg-host-key", key); startHost(); }
+      else document.getElementById("keyMsg").textContent = "Wrong key.";
+    };
+    boot();
+
+    let view = null;
+    let conn = null;
+    let lastKey = "";
+    const main = document.getElementById("main");
+    const joinUrl = `${location.origin}/`;
+
+    function startHost() {
+      document.getElementById("screen").classList.remove("hidden");
+      document.getElementById("controls").classList.remove("hidden");
+      conn = connect({
+        params: { role: "host", key },
+        onState: (v) => { view = v; render(); },
+        onError: (e) => flash(e.message),
+        onStatus: (s) => (document.getElementById("dot").className = `status-dot ${s}`),
+      });
+      setInterval(tick, 200);
+    }
+
+    function flash(text) {
+      const m = document.getElementById("ctlMsg");
+      m.textContent = text;
+      clearTimeout(flash.t);
+      flash.t = setTimeout(() => (m.textContent = ""), 5000);
+    }
+
+    // ---------- controls ----------
+    const primary = document.getElementById("primary");
+    const lockBtn = document.getElementById("lockBtn");
+    function primaryAction() {
+      if (!view) return null;
+      const last = view.roundNumber >= view.totalRounds;
+      switch (view.phase) {
+        case "waiting": return { label: `▶ Start round ${view.roundNumber}`, t: "start" };
+        case "open": return { label: "⏳ Round in progress…", t: null };
+        case "locked": return { label: "🎉 Reveal price", t: "reveal" };
+        case "revealed": return { label: last ? "🏆 Final results" : "➡ Scoreboard / next dish", t: "next" };
+        default: return { label: "Game over", t: null };
+      }
+    }
+    primary.onclick = () => { const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
+    lockBtn.onclick = () => conn.send({ t: "lock" });
+    document.getElementById("resetRound").onclick = () => {
+      if (confirm(`Redo round ${view.roundNumber}? All guesses for this round will be deleted.`)) conn.send({ t: "resetRound" });
+    };
+    document.getElementById("resetGame").onclick = () => {
+      if (!confirm("Reset the WHOLE game back to round 1? All guesses and scores will be deleted.")) return;
+      const clearTables = confirm(
+        "Also clear all table joins?\n\nOK = every phone must pick its table again (use this after a rehearsal).\nCancel = keep tables joined.");
+      conn.send({ t: "resetGame", keepClaims: !clearTables });
+    };
+    document.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); primary.click(); }
+      if (e.key === "h" || e.key === "H") {
+        document.getElementById("controls").classList.toggle("hidden");
+        document.body.classList.toggle("bar-hidden");
+      }
+    });
+
+    // ---------- rendering ----------
+    function render() {
+      if (!view) return;
+      const a = primaryAction();
+      primary.textContent = a.label;
+      primary.disabled = !a.t;
+      lockBtn.classList.toggle("hidden", view.phase !== "open");
+      document.getElementById("resetRound").disabled = view.phase === "final";
+
+      document.getElementById("topLeft").innerHTML =
+        view.phase === "final" ? `<strong>${esc(view.title)}</strong>` : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
+      document.getElementById("topRight").textContent =
+        `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
+
+      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
+      if (k === lastKey) return;
+      lastKey = k;
+      if (view.phase === "waiting") return view.roundNumber === 1 ? renderJoin() : renderStandings(false);
+      if (view.phase === "open" || view.phase === "locked") return renderDish();
+      if (view.phase === "revealed") return renderReveal();
+      if (view.phase === "final") return renderStandings(true);
+    }
+
+    function chips(highlightSubmitted, compact = false) {
+      const claimed = new Set(view.claimedTables), online = new Set(view.connectedTables), sub = new Set(view.submittedTables);
+      return `<div class="chips${compact ? " compact" : ""}">${Array.from({ length: view.tables }, (_, i) => i + 1).map((t) => {
+        const cls = ["chip", claimed.has(t) && "claimed", online.has(t) && "connected", highlightSubmitted && sub.has(t) && "submitted"].filter(Boolean).join(" ");
+        return `<div class="${cls}" data-release="${claimed.has(t) ? t : ""}" title="${claimed.has(t) ? "Click to release this table" : ""}">${t}</div>`;
+      }).join("")}</div>`;
+    }
+    main.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-release]")?.dataset.release;
+      if (t && confirm(`Release table ${t}? Its phone will need to pick a table again.`)) conn.send({ t: "release", table: Number(t) });
+    });
+
+    function renderJoin() {
+      main.innerHTML = `
+        <div class="join">
+          <img src="/qr.svg" alt="QR code to join" />
+          <div>
+            <h1>Scan to join — one phone per table</h1>
+            <div class="url">${esc(joinUrl)}</div>
+            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for the first dish.
+              Guess the total price of the ingredients — <strong>closest without going over wins!</strong></p>
+            ${chips(false)}
+          </div>
+        </div>`;
+    }
+
+    function renderDish() {
+      const d = view.dish;
+      main.innerHTML = `
+        <div class="dish">
+          ${d.image ? `<img src="${esc(d.image)}" alt="" />` : "<div></div>"}
+          <div>
+            <h1>${esc(d.name)}</h1>
+            <ul>${d.ingredients.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
+            <div class="countdown" id="cd"></div>
+            <div class="sub" id="subCount"></div>
+            ${chips(true, true)}
+          </div>
+        </div>`;
+      tick();
+    }
+
+    function renderReveal() {
+      const r = view.result;
+      main.innerHTML = `
+        <div class="reveal">
+          <div>
+            <div class="truth">${esc(view.dish?.name ?? "")}<span class="price">${formatCents(r.priceCents)}</span></div>
+            <div class="winner">${r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round."}</div>
+          </div>
+          <ul class="bids">${r.entries.length ? r.entries.map((e) => `
+            <li class="${e.winner ? "win" : e.over ? "over" : ""}"><span>Table ${e.table}</span>
+              <span class="price">${formatCents(e.cents)}</span></li>`).join("") : `<li class="muted">No guesses.</li>`}
+          </ul>
+        </div>`;
+    }
+
+    function renderStandings(final) {
+      const lead = view.leaders;
+      const rows = view.standings.filter((s) => s.wins > 0);
+      const title = final
+        ? lead.length === 1 ? `🏆 Table ${lead[0]} is the champion!` : lead.length > 1 ? `Tie for first: Table ${lead.join(", ")}` : "Game over"
+        : `Scoreboard — next up: round ${view.roundNumber} of ${view.totalRounds}`;
+      main.innerHTML = `
+        <div class="standings">
+          <h1>${esc(title)}</h1>
+          ${final && lead.length > 1 ? `<p class="muted" style="font-size:1.8vw">Tiebreak rule to be decided by the host.</p>` : ""}
+          ${rows.length ? `<table>${rows.map((s) => `
+            <tr class="${s.rank === 1 ? "lead" : ""}"><td>#${s.rank}</td><td>Table ${s.table}</td>
+            <td>${s.wins} round${s.wins === 1 ? "" : "s"}</td><td class="muted">${s.roundsWon.map((n) => `R${n}`).join(" ")}</td></tr>`).join("")}
+          </table>` : `<p class="muted">No winners yet.</p>`}
+          ${final ? `<h2 style="margin-top:2vw">Round by round</h2><table>${view.roundWinners.map((w) => `
+            <tr><td>R${w.roundNumber}</td><td>${esc(w.dishName)}</td><td class="price">${formatCents(w.priceCents)}</td>
+            <td>${w.winners.length ? `Table ${w.winners.join(", ")}` : "—"}</td></tr>`).join("")}</table>` : chips(false, true)}
+        </div>`;
+    }
+
+    function tick() {
+      if (!view || !conn) return;
+      const cd = document.getElementById("cd");
+      if (cd) {
+        const left = view.phase === "open" ? secondsLeft(view.deadline, conn.serverNow()) : 0;
+        cd.textContent = view.phase === "locked" ? "Time's up!" : left;
+        cd.classList.toggle("urgent", view.phase === "locked" || left <= 5);
+      }
+      const sc = document.getElementById("subCount");
+      if (sc) sc.textContent = `${view.submittedTables.length} of ${view.claimedTables.length} tables have answered`;
+    }
+  </script>
+</body>
+</html>
