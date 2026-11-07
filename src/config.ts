@@ -10,8 +10,11 @@ export interface Dish {
   name: string;
   /** Optional short facts shown as a list, e.g. the package size. Use [] for none. */
   ingredients: string[];
-  /** Path under public/, e.g. "/items/k3f9a.jpg". Use an unguessable file name. */
-  image?: string;
+  /**
+   * Paths under public/, e.g. "/items/k3f9a.jpg". Use unguessable file names.
+   * The first is shown big (usually the package); a second one is overlapped beside it.
+   */
+  images: string[];
   /** True price in cents. $30.75 -> 3075. */
   priceCents: number;
 }
@@ -55,7 +58,7 @@ export interface GameConfig {
 
 // ---------------------------------------------------------------------------
 // All candidate products (from Candidate_Items.pptx + item_list_and_price.xlsx).
-// Images are the slides with the price cards removed.
+// Images: the product pictures from each slide (price cards left out).
 // Prices: shelf price "ea", before tax, as in the spreadsheet.
 // ⚠ Three were ON SALE when captured (sale price used): beef-chili, tomato-basil-bisque,
 //   tidystack-containers. The default line-up avoids them.
@@ -64,97 +67,97 @@ export const CATALOG = {
   "beef-wellie-bites": {
     name: "PC® Beef Wellie Bites",
     ingredients: ["288 g"],
-    image: "/items/beef-wellie-bites-5d90d5.jpg",
+    images: ["/items/beef-wellie-bites-a-3ae184.jpg", "/items/beef-wellie-bites-b-97f061.jpg"],
     priceCents: 1000,
   },
   "fish-chips-stacks": {
     name: "PC® The Chip Shop Fish and Chips Stacks",
     ingredients: ["270 g"],
-    image: "/items/fish-chips-stacks-e9207c.jpg",
+    images: ["/items/fish-chips-stacks-a-a38436.jpg", "/items/fish-chips-stacks-b-ca4770.jpg"],
     priceCents: 1000,
   },
   "goat-cheese-pack": {
     name: "PC® The G.O.A.T. Soft Fresh Goat's Cheeses Variety Pack",
     ingredients: ["420 g"],
-    image: "/items/goat-cheese-pack-2c7f68.jpg",
+    images: ["/items/goat-cheese-pack-a-59ed00.jpg", "/items/goat-cheese-pack-b-e47972.jpg"],
     priceCents: 1200,
   },
   "buttermilk-turkey": {
     name: "PC® Buttermilk-Brined Young Turkey",
     ingredients: ["Whole turkey, 5–7 kg"],
-    image: "/items/buttermilk-turkey-0919ec.jpg",
+    images: ["/items/buttermilk-turkey-b-ee8ed1.jpg", "/items/buttermilk-turkey-a-783a0d.jpg"],
     priceCents: 4000,
   },
   "cottage-roast": {
     name: "PC® The Great Canadian Cottage Roast",
     ingredients: ["1 kg"],
-    image: "/items/cottage-roast-0cf335.jpg",
+    images: ["/items/cottage-roast-b-4c7011.jpg", "/items/cottage-roast-a-ca65aa.jpg"],
     priceCents: 1400,
   },
   "butter-tart-pie": {
     name: "PC® Our Ultimate Butter-Tart Pie with Canadian Cranberries",
     ingredients: ["497 g"],
-    image: "/items/butter-tart-pie-f6034e.jpg",
+    images: ["/items/butter-tart-pie-a-430161.jpg", "/items/butter-tart-pie-b-dfd164.jpg"],
     priceCents: 1000,
   },
   "milk-chocolate-truffles": {
     name: "PC® Classic Belgian Milk Chocolate Covered Truffles",
     ingredients: ["600 g"],
-    image: "/items/milk-chocolate-truffles-ec0298.jpg",
+    images: ["/items/milk-chocolate-truffles-a-219a5d.jpg", "/items/milk-chocolate-truffles-b-5fa3c8.jpg"],
     priceCents: 1300,
   },
   "santas-ice-cream": {
     name: "PC® Scoop Shop Santa's Milk and Cookies Ice Cream",
     ingredients: ["946 ml"],
-    image: "/items/santas-ice-cream-c11b47.jpg",
+    images: ["/items/santas-ice-cream-a-14344e.jpg", "/items/santas-ice-cream-b-9cee82.jpg"],
     priceCents: 500,
   },
   "garlic-pull-aparts": {
     name: "PC® Garlic Parmesan Sourdough Pull-Aparts",
     ingredients: ["355 g"],
-    image: "/items/garlic-pull-aparts-d849a6.jpg",
+    images: ["/items/garlic-pull-aparts-b-3828e5.jpg", "/items/garlic-pull-aparts-a-3c382c.jpg"],
     priceCents: 350,
   },
   "beef-chili": {
     name: "PC® Slow Simmered Beef Chili",
     ingredients: ["700 g"],
-    image: "/items/beef-chili-09d756.jpg",
+    images: ["/items/beef-chili-b-d0c24b.jpg", "/items/beef-chili-a-86e648.jpg"],
     priceCents: 750, // sale price (regular $9.00)
   },
   "tomato-basil-bisque": {
     name: "PC® Slow Simmered Tomato Basil Bisque Soup",
     ingredients: ["700 ml"],
-    image: "/items/tomato-basil-bisque-cba14f.jpg",
+    images: ["/items/tomato-basil-bisque-a-68019d.jpg", "/items/tomato-basil-bisque-b-73e9c9.jpg"],
     priceCents: 750, // sale price (regular $9.00)
   },
   "charcuterie-board": {
     name: "PC® Oversized Acacia Charcuterie Board",
     ingredients: ["1 board"],
-    image: "/items/charcuterie-board-6c05af.jpg",
+    images: ["/items/charcuterie-board-a-bf89d7.jpg", "/items/charcuterie-board-b-28df1f.jpg"],
     priceCents: 4000,
   },
   "black-label-pinsa": {
     name: "PC® Black Label Stracciatella e Speck Pinsa",
     ingredients: ["325 g"],
-    image: "/items/black-label-pinsa-3ece3c.jpg",
+    images: ["/items/black-label-pinsa-a-71a1b6.jpg", "/items/black-label-pinsa-b-69efb4.jpg"],
     priceCents: 900,
   },
   "ceraware-skillet": {
     name: "PC® CeraWare Ceramic Non-Stick Cast Aluminum Skillet",
     ingredients: ["11 in"],
-    image: "/items/ceraware-skillet-d85a15.jpg",
+    images: ["/items/ceraware-skillet-a-5cca1a.jpg", "/items/ceraware-skillet-b-8cca95.jpg"],
     priceCents: 2000,
   },
   "tidystack-containers": {
     name: "PC® TidyStack Glass Containers",
     ingredients: ["3 pack"],
-    image: "/items/tidystack-containers-a72402.jpg",
+    images: ["/items/tidystack-containers-a-6bf6a1.jpg", "/items/tidystack-containers-b-ad2275.jpg"],
     priceCents: 2000, // sale price (regular $21.00)
   },
   "probiotic-yogurt": {
     name: "PC® Lactose Free Strawberry and Blueberry Probiotic Yogurt",
     ingredients: ["8 × 100 g"],
-    image: "/items/probiotic-yogurt-197ce7.jpg",
+    images: ["/items/probiotic-yogurt-a-118e17.jpg", "/items/probiotic-yogurt-b-697af6.jpg"],
     priceCents: 400,
   },
 } satisfies Record<string, Dish>;

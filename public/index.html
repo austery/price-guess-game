@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1220" />
   <title>Price Guess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@400;600;700;900&display=swap" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -101,11 +104,18 @@
           <div class="card">
             ${view.isPractice ? `<div class="notice" style="margin-bottom:10px">🏋️ Practice first — it doesn't count!</div>`
               : view.practiceDone && view.roundNumber === 1 ? `<div class="notice ok" style="margin-bottom:10px">✅ Practice over — now it counts!</div>` : ""}
-            <h1>You're in! 🎉</h1>
-            <p class="muted">${esc(roundLabel)} is about to start. Watch the big screen —
-            when the next item appears you'll have <strong>${view.roundSeconds} seconds</strong> to enter
-            your table's guess. ${esc(view.guessPrompt)}</p>
-            <p><strong>Closest without going over wins the round.</strong></p>
+            ${view.introStep < 3
+              ? `<div class="muted" style="font-size:13px;letter-spacing:.04em;font-weight:600">PC INSIDERS REPORT</div>
+                 <h1 style="font-size:30px">Guess the Price!</h1>
+                 <div class="script" style="font-size:30px;margin-bottom:6px">Holiday Edition</div>`
+              : `<h1>You're in! 🎉</h1>`}
+            <p class="muted">${view.introStep < 3 ? "You're in! Watch the big screen." : `${esc(roundLabel)} is about to start. Watch the big screen.`}</p>
+            <ol style="padding-left:20px;margin:8px 0 0;line-height:1.5">
+              <li>A product appears — you have <strong>${view.roundSeconds} seconds</strong>.</li>
+              <li>${esc(view.guessPrompt)}</li>
+              <li><strong>Closest without going over</strong> wins the round.</li>
+              <li>Most rounds won takes the prize!</li>
+            </ol>
           </div>
           ${standingsMini()}
           <button class="link-btn" id="change">Wrong table? Change it</button>`;
@@ -120,7 +130,7 @@
           <div class="card">
             <div class="muted">${esc(roundLabel)}</div>
             <h1>${esc(view.dish?.name ?? "")}</h1>
-            ${view.dish?.image ? `<img src="${esc(view.dish.image)}" alt="" style="width:100%;border-radius:10px;margin-top:8px">` : ""}
+            ${view.dish?.images?.[0] ? `<img src="${esc(view.dish.images[0])}" alt="" style="width:100%;border-radius:10px;margin-top:8px;background:#fff">` : ""}
             <ul class="ingredients">${(view.dish?.ingredients ?? []).map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
           </div>
           <form class="bid-form" id="bid" autocomplete="off">

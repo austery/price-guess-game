@@ -152,8 +152,8 @@ describe("secrecy: true price never reaches clients before reveal", () => {
     start(s, cfg, T0);
     const d = playerView(s, cfg, tok(1), T0).dish!;
     expect(d.name).toBe(cfg.dishes[0].name);
-    expect(d.image).toBeUndefined(); // phones show text only by default
-    expect(hostView(s, cfg, T0, []).dish!.image).toBe(cfg.dishes[0].image);
+    expect(d.images).toEqual([]); // phones show text only by default
+    expect(hostView(s, cfg, T0, []).dish!.images).toEqual(cfg.dishes[0].images);
   });
 
   it("other tables' amounts are not visible to players before reveal", () => {

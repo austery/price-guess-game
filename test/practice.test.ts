@@ -140,3 +140,31 @@ describe("practice rounds", () => {
     expect(hostView(s, three, T0, []).phase).toBe("final");
   });
 });
+
+describe("intro screens", () => {
+  it("join -> welcome -> rules, back works, and starting ends the intro", async () => {
+    const { introStep } = await import("../src/game");
+    const s = fresh();
+    expect(s.introStep).toBe(0);
+    introStep(s, 1);
+    introStep(s, 1);
+    expect(hostView(s, cfg, T0, []).introStep).toBe(2);
+    introStep(s, 1); // already on the last intro screen: stays
+    expect(s.introStep).toBe(2);
+    introStep(s, -1);
+    expect(s.introStep).toBe(1);
+    start(s, cfg, T0);
+    expect([s.introStep, hostView(s, cfg, T0, []).isPractice]).toEqual([3, true]);
+    expect(code(() => introStep(s, 1))).toBe("bad_phase");
+  });
+
+  it("reset game shows the intro again; an old saved game skips it", () => {
+    const s = fresh();
+    start(s, cfg, T0);
+    resetGame(s, true, cfg);
+    expect(s.introStep).toBe(0);
+    const old = { ...initialState(cfg) } as Partial<GameState>;
+    delete old.introStep;
+    expect(normalizeState(old, cfg).introStep).toBe(3);
+  });
+});

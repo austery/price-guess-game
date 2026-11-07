@@ -5,6 +5,9 @@
 //   waiting  --start-->  open  --(deadline+grace | host "lock")-->  locked  --reveal-->  revealed
 //   revealed --next-->   waiting (r+1)          ... after the last round:  revealed --next--> final
 //
+// Intro: a fresh game shows three host-paced screens before anything is played:
+//   introStep 0 = scan to join, 1 = welcome, 2 = how to play. Starting the first round ends the intro.
+//
 // Practice: if cfg.practice is non-empty, a fresh game starts with practiceRound = 0. Practice rounds
 // use the same phases, but results are kept apart and never count. After the last practice round
 // (or "skipPractice"), the real game starts at round 0.
@@ -37,6 +40,8 @@ export interface GameState {
   deadline: number | null;
   /** table number -> player token currently holding it. */
   claims: Record<string, string>;
+  /** 0 = join screen, 1 = welcome, 2 = rules, 3 = intro finished. */
+  introStep: number;
   /** Index into cfg.practice while practising; null once the real game has started. */
   practiceRound: number | null;
   /** true once practice has been played or skipped (for the "now it counts" banner). */
@@ -66,6 +71,7 @@ export function initialState(cfg?: GameConfig): GameState {
   return {
     phase: "waiting",
     round: 0,
+    introStep: 0,
     practiceRound: cfg && cfg.practice.length > 0 ? 0 : null,
     practiceDone: false,
     practiceResults: {},
@@ -82,7 +88,8 @@ export function initialState(cfg?: GameConfig): GameState {
 /** Fill fields added in later versions when loading an older saved state. */
 export function normalizeState(saved: Partial<GameState> | undefined, cfg?: GameConfig): GameState {
   if (!saved) return initialState(cfg);
-  return { ...initialState(), ...saved };
+  // A game saved before the intro existed has already been started: skip the intro.
+  return { ...initialState(), introStep: 3, ...saved };
 }
 
 export function isPractice(s: GameState): boolean {
@@ -170,6 +177,18 @@ export function start(s: GameState, cfg: GameConfig, now: number) {
   else delete s.results[s.round];
   s.phase = "open";
   s.deadline = now + cfg.roundSeconds * 1000;
+  s.introStep = 3;
+  bump(s);
+}
+
+export const INTRO_LAST = 2;
+
+/** Host moves through the intro screens (join -> welcome -> rules). */
+export function introStep(s: GameState, delta: 1 | -1) {
+  if (s.phase !== "waiting" || s.introStep > INTRO_LAST) throw new GameError("bad_phase", "The intro is over.");
+  const target = s.introStep + delta;
+  if (target < 0 || target > INTRO_LAST) return;
+  s.introStep = target;
   bump(s);
 }
 
@@ -282,7 +301,7 @@ export function release(s: GameState, table: number) {
 export interface DishView {
   name: string;
   ingredients: string[];
-  image?: string;
+  images: string[];
 }
 
 export interface Champion {
@@ -295,6 +314,8 @@ export interface CommonView {
   title: string;
   guessPrompt: string;
   phase: Phase;
+  /** Intro screen to show while waiting: 0 join, 1 welcome, 2 rules; 3 = intro over. */
+  introStep: number;
   /** true while the tiebreaker round is being played. */
   isTiebreak: boolean;
   /** Practice round info while practising (results never count). */
@@ -362,6 +383,7 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     title: cfg.title,
     guessPrompt: cfg.guessPrompt,
     phase: s.phase,
+    introStep: s.introStep,
     isTiebreak: tiebreakRound,
     isPractice: isPractice(s),
     practiceNumber: isPractice(s) ? s.practiceRound! + 1 : null,
@@ -379,7 +401,7 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     tables: cfg.tables,
     claimedTables: Object.keys(s.claims).map(Number).sort((a, b) => a - b),
     submittedTables: Object.keys(s.bids[roundKey(s)] ?? {}).map(Number).sort((a, b) => a - b),
-    dish: dish && dishVisible(s) ? { name: dish.name, ingredients: dish.ingredients, image: dish.image } : null,
+    dish: dish && dishVisible(s) ? { name: dish.name, ingredients: dish.ingredients, images: dish.images } : null,
     // The true price only leaves the server inside a revealed result.
     result:
       s.phase !== "revealed"
@@ -398,9 +420,7 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
   return {
     ...common(s, cfg, now),
     role: "host",
-    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) =>
-      d.image ? [d.image] : [],
-    ),
+    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) => d.images),
     connectedTables: [...connectedTables].sort((a, b) => a - b),
     bidCount: Object.keys(s.bids[roundKey(s)] ?? {}).length,
   };
@@ -409,7 +429,7 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
 export function playerView(s: GameState, cfg: GameConfig, token: string, now: number): PlayerView {
   const view = common(s, cfg, now);
   const myTable = tableOf(s, token);
-  if (view.dish && !cfg.rules.phoneShowsImage) view.dish = { ...view.dish, image: undefined };
+  if (view.dish && !cfg.rules.phoneShowsImage) view.dish = { ...view.dish, images: [] };
   if (view.result && !cfg.rules.revealAllBids) {
     view.result = {
       ...view.result,

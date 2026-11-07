@@ -9,6 +9,7 @@ import {
   claim,
   hostView,
   initialState,
+  introStep,
   lockNow,
   normalizeState,
   lockTime,
@@ -140,6 +141,10 @@ export class GameRoom extends DurableObject<Env> {
         return resetRound(this.state);
       case "resetGame":
         return resetGame(this.state, msg.keepClaims !== false, this.cfg);
+      case "introNext":
+        return introStep(this.state, 1);
+      case "introBack":
+        return introStep(this.state, -1);
       case "skipPractice":
         return skipPractice(this.state);
       case "release":

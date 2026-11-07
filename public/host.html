@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
   <title>Price Guess — Host</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@400;600;700;900&display=swap" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -100,6 +103,9 @@
     function primaryAction() {
       if (!view) return null;
       const last = view.roundNumber >= view.totalRounds;
+      if (view.phase === "waiting" && view.introStep < 2) {
+        return { label: view.introStep === 0 ? "➡ Welcome screen" : "➡ How to play", t: "introNext" };
+      }
       if (view.isPractice) {
         const lastPractice = view.practiceNumber >= view.practiceTotal;
         switch (view.phase) {
@@ -134,6 +140,7 @@
     document.addEventListener("keydown", (e) => {
       if (e.target.tagName === "INPUT") return;
       if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); primary.click(); }
+      if (e.key === "ArrowLeft" && view?.phase === "waiting" && view.introStep > 0 && view.introStep < 3) conn.send({ t: "introBack" });
       if (e.key === "h" || e.key === "H") {
         document.getElementById("controls").classList.toggle("hidden");
         document.body.classList.toggle("bar-hidden");
@@ -147,11 +154,13 @@
       primary.textContent = a.label;
       primary.disabled = !a.t;
       lockBtn.classList.toggle("hidden", view.phase !== "open");
-      document.getElementById("skipBtn").classList.toggle("hidden", !(view.isPractice && (view.phase === "waiting" || view.phase === "revealed")));
+      document.getElementById("skipBtn").classList.toggle("hidden",
+        !(view.isPractice && view.introStep >= 3 && (view.phase === "waiting" || view.phase === "revealed")));
       document.getElementById("resetRound").disabled = view.phase === "final";
 
       document.getElementById("topLeft").innerHTML =
-        view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
+        view.phase === "waiting" && view.introStep < 3 ? `<strong>${esc(view.title)}</strong> · Holiday Edition`
+        : view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
         : view.isTiebreak ? `<strong>Tiebreaker</strong> · Tables ${view.tiebreakTables.join(", ")}`
         : view.isPractice ? `<strong>Practice ${view.practiceNumber}</strong> of ${view.practiceTotal} · doesn't count`
         : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
@@ -162,6 +171,8 @@
       if (k === lastKey) return;
       lastKey = k;
       if (view.phase === "waiting") {
+        if (view.introStep === 1) return renderWelcome();
+        if (view.introStep === 2) return renderRules();
         if (view.isTiebreak) return renderTiebreakIntro();
         if (view.isPractice) return view.practiceNumber === 1 ? renderJoin() : renderPracticeNext();
         return view.roundNumber === 1 ? renderJoin() : renderStandings(false);
@@ -193,6 +204,55 @@
         </div>`;
     }
 
+    function renderWelcome() {
+      main.innerHTML = `
+        <div class="welcome">
+          <div class="cover-fan">
+            ${[1, 2, 3, 4].map((n) => `<img src="/theme/insiders-cover-${n}.jpg" alt="" />`).join("")}
+          </div>
+          <div>
+            <div class="kicker">PRESIDENT'S CHOICE INSIDERS REPORT</div>
+            <h1>Guess the Price!</h1>
+            <div class="script">Holiday Edition</div>
+            <p>How well do you know our new holiday products? Let's find out which table really knows its prices!</p>
+          </div>
+        </div>`;
+    }
+
+    function renderRules() {
+      const rounds = view.totalRounds;
+      const practice = view.practiceTotal;
+      main.innerHTML = `
+        <div class="rules">
+          <h1>How to <span class="script">play</span></h1>
+          <div class="rule-cards">
+            <div class="rule-card"><div class="num">📱</div><h2>One phone per table</h2>
+              <p>One person at each table types your table's answer.</p></div>
+            <div class="rule-card"><div class="num">⏱️</div><h2>${view.roundSeconds} seconds</h2>
+              <p>A product appears. Agree on its shelf price (before tax) and enter it before time runs out.</p></div>
+            <div class="rule-card"><div class="num">🎯</div><h2>Don't go over!</h2>
+              <p>The closest price <strong>without going over</strong> wins the round.</p></div>
+            <div class="rule-card"><div class="num">🏆</div><h2>Win the most rounds</h2>
+              <p>${practice ? `${practice} practice round${practice === 1 ? "" : "s"} first (just for fun), then ` : ""}${rounds} rounds for real. Most wins takes the prize!</p></div>
+          </div>
+          <div class="example">
+            <span>Example — real price <strong>$10.00</strong>:</span>
+            <span class="pill win">$9.50 ✓ wins</span>
+            <span class="pill">$8.00 too low</span>
+            <span class="pill over">$10.25</span><span>over = out</span>
+          </div>
+        </div>`;
+    }
+
+    function collage(images) {
+      const [main, side] = images;
+      if (!main) return "<div></div>";
+      return `<div class="collage${side ? "" : " single"}">
+        <div class="card main"><img src="${esc(main)}" alt="" onload="this.closest('.collage').classList.toggle('wide', this.naturalWidth / this.naturalHeight > 1.35)" /></div>
+        ${side ? `<div class="card side"><img src="${esc(side)}" alt="" /></div>` : ""}
+      </div>`;
+    }
+
     function renderJoin() {
       const banner = view.isPractice
         ? `<div class="notice" style="font-size:1.8vw;margin-bottom:1.5vw">🏋️ First, ${view.practiceTotal} practice round${view.practiceTotal === 1 ? "" : "s"} — they don't count!</div>`
@@ -217,9 +277,9 @@
       const d = view.dish;
       main.innerHTML = `
         <div class="dish">
-          ${d.image ? `<img src="${esc(d.image)}" alt="" />` : "<div></div>"}
+          ${collage(d.images)}
           <div>
-            <h1>${esc(d.name)}</h1>
+            <h1 class="${d.name.length > 40 ? "long" : ""}">${esc(d.name)}</h1>
             <ul>${d.ingredients.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
             <div class="countdown" id="cd"></div>
             <div class="sub" id="subCount"></div>
@@ -259,11 +319,12 @@
       main.innerHTML = `
         <div class="reveal">
           <div>
+            ${view.dish?.images?.[0] ? `<div class="thumb"><img src="${esc(view.dish.images[0])}" alt="" /></div>` : ""}
             <div class="truth">${esc(view.dish?.name ?? "")}<span class="price">${formatCents(r.priceCents)}</span></div>
             <div class="winner">${headline}</div>
           </div>
           <ul class="bids">${r.entries.length ? r.entries.map((e) => `
-            <li class="${e.winner ? "win" : e.over ? "over" : ""}"><span>Table ${e.table}</span>
+            <li class="${e.winner ? "win" : e.over ? "over" : ""}"><span>Table ${e.table}${e.over ? `<span class="tag">OVER</span>` : ""}</span>
               <span class="price">${formatCents(e.cents)}</span></li>`).join("") : `<li class="muted">No guesses.</li>`}
           </ul>
         </div>`;
