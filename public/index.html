@@ -68,7 +68,9 @@
       lastRenderKey = key;
 
       if (!view.myTable || changingTable) return renderPickTable();
-      const roundLabel = view.isTiebreak ? "Tiebreaker" : `Round ${view.roundNumber} of ${view.totalRounds}`;
+      const roundLabel = view.isTiebreak ? "Tiebreaker"
+        : view.isPractice ? `Practice ${view.practiceNumber} of ${view.practiceTotal} (doesn't count)`
+        : `Round ${view.roundNumber} of ${view.totalRounds}`;
       const inTiebreak = view.isTiebreak && view.tiebreakTables.includes(view.myTable);
 
       // Tiebreaker: tables that aren't tied just watch.
@@ -97,6 +99,8 @@
       if (view.phase === "waiting") {
         app.innerHTML = `
           <div class="card">
+            ${view.isPractice ? `<div class="notice" style="margin-bottom:10px">🏋️ Practice first — it doesn't count!</div>`
+              : view.practiceDone && view.roundNumber === 1 ? `<div class="notice ok" style="margin-bottom:10px">✅ Practice over — now it counts!</div>` : ""}
             <h1>You're in! 🎉</h1>
             <p class="muted">${esc(roundLabel)} is about to start. Watch the big screen —
             when the next item appears you'll have <strong>${view.roundSeconds} seconds</strong> to enter
@@ -153,7 +157,7 @@
       if (view.phase === "revealed") {
         const r = view.result;
         const me = r.entries.find((e) => e.table === view.myTable);
-        const what = view.isTiebreak ? "the tiebreaker" : "this round";
+        const what = view.isTiebreak ? "the tiebreaker" : view.isPractice ? "this practice round (doesn't count)" : "this round";
         let verdict = inTiebreak || !view.isTiebreak ? `<span class="muted">No guess from your table.</span>` : "";
         if (me?.winner) verdict = `<span class="good">🏆 Your table wins ${what}!</span>`;
         else if (me && view.isTiebreak) verdict = `Not this time — Table ${r.winners[0]} wins the tiebreaker.`;
@@ -167,7 +171,8 @@
             <p style="text-align:center">${view.isTiebreak
               ? `Tiebreaker winner: <strong>Table ${r.winners[0]}</strong><br><span class="muted">${
                   r.decidedBy === "under" ? "Closest without going over." : r.decidedBy === "closest" ? "Everyone went over — closest guess wins." : "Still tied — drawn by lot."}</span>`
-              : r.winners.length ? `Round winner: <strong>Table ${r.winners.join(", ")}</strong>` : "Nobody won — every guess went over."}</p>
+              : r.winners.length ? `${view.isPractice ? "Practice winner" : "Round winner"}: <strong>Table ${r.winners.join(", ")}</strong>`
+              : "Nobody won — every guess went over."}</p>
           </div>
           <div class="card"><ul class="list">${r.entries.map((e) => `
             <li class="${e.winner ? "win" : e.over ? "over" : ""} ${e.table === view.myTable ? "me" : ""}">

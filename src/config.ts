@@ -40,6 +40,11 @@ export interface GameConfig {
   /** Extra time the server still accepts bids after the countdown hits 0 (network latency). */
   submitGraceMs: number;
   rules: Rules;
+  /**
+   * Warm-up rounds played before the real ones so everyone learns the flow.
+   * Results are revealed as usual but never count. Use [] for none.
+   */
+  practice: Dish[];
   dishes: Dish[];
   /**
    * Played only if two or more tables are tied for first after all rounds.
@@ -60,7 +65,21 @@ export const GAME_CONFIG: GameConfig = {
     phoneShowsImage: false,
     revealAllBids: true,
   },
-  // Placeholder dishes for development. Replace with the real five before the event.
+  // Placeholder items for development. Replace with the real ones before the event.
+  practice: [
+    {
+      name: "Practice 1: Coffee Run",
+      ingredients: ["Ground coffee (340 g)", "Milk (2 L)", "Sugar (2 kg)"],
+      image: "/dishes/demo-practice1-v6t9.svg",
+      priceCents: 2147,
+    },
+    {
+      name: "Practice 2: Pizza Night",
+      ingredients: ["Frozen pizza", "Pop (2 L)", "Caesar salad kit"],
+      image: "/dishes/demo-practice2-c1w5.svg",
+      priceCents: 1696,
+    },
+  ],
   dishes: [
     {
       name: "Appetizer: Caprese Salad",

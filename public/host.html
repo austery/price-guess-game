@@ -26,6 +26,7 @@
   <div id="controls" class="controls hidden">
     <button id="primary"></button>
     <button id="lockBtn" class="secondary hidden">Stop now</button>
+    <button id="skipBtn" class="secondary hidden">Skip practice</button>
     <span class="msg" id="ctlMsg"></span>
     <span class="spacer"></span>
     <span class="muted" style="font-size:13px">Space = main button · H = hide bar</span>
@@ -93,6 +94,15 @@
     function primaryAction() {
       if (!view) return null;
       const last = view.roundNumber >= view.totalRounds;
+      if (view.isPractice) {
+        const lastPractice = view.practiceNumber >= view.practiceTotal;
+        switch (view.phase) {
+          case "waiting": return { label: `▶ Start practice ${view.practiceNumber}`, t: "start" };
+          case "open": return { label: "⏳ Practice in progress…", t: null };
+          case "locked": return { label: "🎉 Reveal price", t: "reveal" };
+          case "revealed": return { label: lastPractice ? "✅ End practice" : "➡ Next practice round", t: "next" };
+        }
+      }
       switch (view.phase) {
         case "waiting": return { label: view.isTiebreak ? "▶ Start tiebreaker" : `▶ Start round ${view.roundNumber}`, t: "start" };
         case "open": return { label: "⏳ Round in progress…", t: null };
@@ -103,6 +113,9 @@
     }
     primary.onclick = () => { const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
     lockBtn.onclick = () => conn.send({ t: "lock" });
+    document.getElementById("skipBtn").onclick = () => {
+      if (confirm("Skip the rest of the practice and start the real game?")) conn.send({ t: "skipPractice" });
+    };
     document.getElementById("resetRound").onclick = () => {
       if (confirm(`Redo round ${view.roundNumber}? All guesses for this round will be deleted.`)) conn.send({ t: "resetRound" });
     };
@@ -128,11 +141,13 @@
       primary.textContent = a.label;
       primary.disabled = !a.t;
       lockBtn.classList.toggle("hidden", view.phase !== "open");
+      document.getElementById("skipBtn").classList.toggle("hidden", !(view.isPractice && (view.phase === "waiting" || view.phase === "revealed")));
       document.getElementById("resetRound").disabled = view.phase === "final";
 
       document.getElementById("topLeft").innerHTML =
         view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
         : view.isTiebreak ? `<strong>Tiebreaker</strong> · Tables ${view.tiebreakTables.join(", ")}`
+        : view.isPractice ? `<strong>Practice ${view.practiceNumber}</strong> of ${view.practiceTotal} · doesn't count`
         : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
       document.getElementById("topRight").textContent =
         `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
@@ -140,7 +155,11 @@
       const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
       if (k === lastKey) return;
       lastKey = k;
-      if (view.phase === "waiting") return view.isTiebreak ? renderTiebreakIntro() : view.roundNumber === 1 ? renderJoin() : renderStandings(false);
+      if (view.phase === "waiting") {
+        if (view.isTiebreak) return renderTiebreakIntro();
+        if (view.isPractice) return view.practiceNumber === 1 ? renderJoin() : renderPracticeNext();
+        return view.roundNumber === 1 ? renderJoin() : renderStandings(false);
+      }
       if (view.phase === "open" || view.phase === "locked") return renderDish();
       if (view.phase === "revealed") return renderReveal();
       if (view.phase === "final") return renderStandings(true);
@@ -159,14 +178,29 @@
       if (t && confirm(`Release table ${t}? Its phone will need to pick a table again.`)) conn.send({ t: "release", table: Number(t) });
     });
 
+    function renderPracticeNext() {
+      main.innerHTML = `
+        <div class="standings">
+          <h1>Practice round ${view.practiceNumber} of ${view.practiceTotal}</h1>
+          <p class="muted" style="font-size:2vw">One more warm-up — this one doesn't count either.</p>
+          ${chips(false, true)}
+        </div>`;
+    }
+
     function renderJoin() {
+      const banner = view.isPractice
+        ? `<div class="notice" style="font-size:1.8vw;margin-bottom:1.5vw">🏋️ First, ${view.practiceTotal} practice round${view.practiceTotal === 1 ? "" : "s"} — they don't count!</div>`
+        : view.practiceDone
+          ? `<div class="notice ok" style="font-size:2.2vw;margin-bottom:1.5vw">✅ Practice over — <strong>from now on it counts!</strong></div>`
+          : "";
       main.innerHTML = `
         <div class="join">
           <img src="/qr.svg" alt="QR code to join" />
           <div>
+            ${banner}
             <h1>Scan to join — one phone per table</h1>
             <div class="url">${esc(joinUrl)}</div>
-            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for round 1.
+            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for the first question.
               ${esc(view.guessPrompt)} <strong>Closest without going over wins!</strong></p>
             ${chips(false)}
           </div>
@@ -210,8 +244,11 @@
 
     function renderReveal() {
       const r = view.result;
+      const practiceNote = `<div class="muted" style="font-size:1.6vw;font-weight:400">Practice — doesn't count.</div>`;
       const headline = view.isTiebreak
         ? `🏆 Table ${r.winners[0]} wins the tiebreaker!<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
+        : view.isPractice
+          ? (r.winners.length ? `Table ${r.winners.join(" & ")} would have won!` : "Everyone went over!") + practiceNote
         : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
       main.innerHTML = `
         <div class="reveal">

@@ -5,6 +5,10 @@
 //   waiting  --start-->  open  --(deadline+grace | host "lock")-->  locked  --reveal-->  revealed
 //   revealed --next-->   waiting (r+1)          ... after the last round:  revealed --next--> final
 //
+// Practice: if cfg.practice is non-empty, a fresh game starts with practiceRound = 0. Practice rounds
+// use the same phases, but results are kept apart and never count. After the last practice round
+// (or "skipPractice"), the real game starts at round 0.
+//
 // Tiebreaker: if 2+ tables are tied for first at "final", the host can start one extra round
 // (round index = dishes.length) that only the tied tables answer:
 //   final --startTiebreak--> waiting --start--> open --> locked --reveal--> revealed --next--> final
@@ -33,7 +37,12 @@ export interface GameState {
   deadline: number | null;
   /** table number -> player token currently holding it. */
   claims: Record<string, string>;
-  /** round index -> table number -> bid. */
+  /** Index into cfg.practice while practising; null once the real game has started. */
+  practiceRound: number | null;
+  /** true once practice has been played or skipped (for the "now it counts" banner). */
+  practiceDone: boolean;
+  practiceResults: Record<string, RoundResult>;
+  /** round key (see roundKey) -> table number -> bid. */
   bids: Record<string, Record<string, Bid>>;
   /** round index -> result, filled on reveal. */
   results: Record<string, RoundResult>;
@@ -53,10 +62,13 @@ export class GameError extends Error {
   }
 }
 
-export function initialState(): GameState {
+export function initialState(cfg?: GameConfig): GameState {
   return {
     phase: "waiting",
     round: 0,
+    practiceRound: cfg && cfg.practice.length > 0 ? 0 : null,
+    practiceDone: false,
+    practiceResults: {},
     deadline: null,
     claims: {},
     bids: {},
@@ -68,15 +80,26 @@ export function initialState(): GameState {
 }
 
 /** Fill fields added in later versions when loading an older saved state. */
-export function normalizeState(saved: Partial<GameState> | undefined): GameState {
-  return { ...initialState(), ...(saved ?? {}) };
+export function normalizeState(saved: Partial<GameState> | undefined, cfg?: GameConfig): GameState {
+  if (!saved) return initialState(cfg);
+  return { ...initialState(), ...saved };
+}
+
+export function isPractice(s: GameState): boolean {
+  return s.practiceRound !== null;
 }
 
 export function isTiebreakRound(s: GameState, cfg: GameConfig): boolean {
-  return s.round >= cfg.dishes.length;
+  return !isPractice(s) && s.round >= cfg.dishes.length;
+}
+
+/** Key for this round's bids: "p0", "p1" for practice, "0".."4" for real rounds, "5" for the tiebreaker. */
+function roundKey(s: GameState): string {
+  return isPractice(s) ? `p${s.practiceRound}` : String(s.round);
 }
 
 function currentDish(s: GameState, cfg: GameConfig) {
+  if (isPractice(s)) return cfg.practice[s.practiceRound!];
   return isTiebreakRound(s, cfg) ? cfg.tiebreaker : cfg.dishes[s.round];
 }
 
@@ -126,7 +149,7 @@ export function submit(s: GameState, cfg: GameConfig, token: string, priceInput:
   }
   const parsed = parsePriceToCents(priceInput);
   if (!parsed.ok) throw new GameError("bad_price", parsed.reason);
-  const roundBids = (s.bids[s.round] ??= {});
+  const roundBids = (s.bids[roundKey(s)] ??= {});
   if (roundBids[table] && !cfg.rules.allowResubmit) {
     throw new GameError("already_submitted", "Your table has already submitted for this round.");
   }
@@ -141,9 +164,10 @@ export function submit(s: GameState, cfg: GameConfig, token: string, priceInput:
 export function start(s: GameState, cfg: GameConfig, now: number) {
   if (s.phase !== "waiting") throw new GameError("bad_phase", "A round is already in progress.");
   if (isTiebreakRound(s, cfg) && !(s.tiebreak && cfg.tiebreaker)) throw new GameError("bad_phase", "No more rounds.");
-  s.bids[s.round] = {};
-  delete s.results[s.round];
-  if (isTiebreakRound(s, cfg)) s.tiebreakResult = null;
+  s.bids[roundKey(s)] = {};
+  if (isPractice(s)) delete s.practiceResults[s.practiceRound!];
+  else if (isTiebreakRound(s, cfg)) s.tiebreakResult = null;
+  else delete s.results[s.round];
   s.phase = "open";
   s.deadline = now + cfg.roundSeconds * 1000;
   bump(s);
@@ -170,8 +194,11 @@ export function lockNow(s: GameState, now: number) {
 
 export function reveal(s: GameState, cfg: GameConfig, rand: () => number = Math.random) {
   if (s.phase !== "locked") throw new GameError("bad_phase", "Lock the round before revealing.");
-  const bids = s.bids[s.round] ?? {};
-  if (isTiebreakRound(s, cfg)) {
+  const bids = s.bids[roundKey(s)] ?? {};
+  if (isPractice(s)) {
+    const p = s.practiceRound!;
+    s.practiceResults[p] = scoreRound(bids, cfg.practice[p].priceCents, cfg.rules.roundTie);
+  } else if (isTiebreakRound(s, cfg)) {
     s.tiebreakResult = scoreTiebreak(bids, cfg.tiebreaker!.priceCents, s.tiebreak!.tables, rand);
   } else {
     s.results[s.round] = scoreRound(bids, cfg.dishes[s.round].priceCents, cfg.rules.roundTie);
@@ -183,11 +210,31 @@ export function reveal(s: GameState, cfg: GameConfig, rand: () => number = Math.
 export function next(s: GameState, cfg: GameConfig) {
   if (s.phase !== "revealed") throw new GameError("bad_phase", "Reveal the round first.");
   s.deadline = null;
-  if (s.round >= cfg.dishes.length - 1) s.phase = "final"; // last regular round, or the tiebreaker
+  if (isPractice(s)) {
+    if (s.practiceRound! < cfg.practice.length - 1) s.practiceRound!++;
+    else endPractice(s);
+    s.phase = "waiting";
+  } else if (s.round >= cfg.dishes.length - 1) s.phase = "final"; // last regular round, or the tiebreaker
   else {
     s.round++;
     s.phase = "waiting";
   }
+  bump(s);
+}
+
+function endPractice(s: GameState) {
+  s.practiceRound = null;
+  s.practiceDone = true;
+  s.round = 0;
+}
+
+/** Host skips the remaining practice rounds and starts the real game. */
+export function skipPractice(s: GameState) {
+  if (!isPractice(s)) throw new GameError("bad_phase", "Practice is already over.");
+  if (s.phase === "open" || s.phase === "locked") throw new GameError("bad_phase", "Finish or redo this practice round first.");
+  endPractice(s);
+  s.phase = "waiting";
+  s.deadline = null;
   bump(s);
 }
 
@@ -208,19 +255,20 @@ export function startTiebreak(s: GameState, cfg: GameConfig) {
 /** Throw away the current round's bids/result and go back to "waiting" for the same dish. */
 export function resetRound(s: GameState) {
   if (s.phase === "final") throw new GameError("bad_phase", "The game is over. Use Reset game instead.");
-  delete s.bids[s.round];
-  delete s.results[s.round];
-  s.tiebreakResult = null;
+  delete s.bids[roundKey(s)];
+  if (isPractice(s)) delete s.practiceResults[s.practiceRound!];
+  else if (s.tiebreak) s.tiebreakResult = null; // tiebreak is only ever set while in the tiebreaker round
+  else delete s.results[s.round];
   s.phase = "waiting";
   s.deadline = null;
   bump(s);
 }
 
-/** Start over from round 1. Table claims are kept so phones don't need to rejoin. */
-export function resetGame(s: GameState, keepClaims = true) {
+/** Start over (with practice, if configured). Table claims are kept so phones don't need to rejoin. */
+export function resetGame(s: GameState, keepClaims = true, cfg?: GameConfig) {
   const claims = keepClaims ? s.claims : {};
   const version = s.version;
-  Object.assign(s, initialState(), { claims, version: version + 1 });
+  Object.assign(s, initialState(cfg), { claims, version: version + 1 });
 }
 
 export function release(s: GameState, table: number) {
@@ -249,6 +297,13 @@ export interface CommonView {
   phase: Phase;
   /** true while the tiebreaker round is being played. */
   isTiebreak: boolean;
+  /** Practice round info while practising (results never count). */
+  isPractice: boolean;
+  /** 1-based practice round number, or null. */
+  practiceNumber: number | null;
+  practiceTotal: number;
+  /** Practice has been played/skipped and the real game has begun. */
+  practiceDone: boolean;
   /** Tables playing the tiebreaker (null if none). */
   tiebreakTables: number[] | null;
   tiebreakResult: TiebreakResult | null;
@@ -306,6 +361,10 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     guessPrompt: cfg.guessPrompt,
     phase: s.phase,
     isTiebreak: tiebreakRound,
+    isPractice: isPractice(s),
+    practiceNumber: isPractice(s) ? s.practiceRound! + 1 : null,
+    practiceTotal: cfg.practice.length,
+    practiceDone: s.practiceDone,
     tiebreakTables: s.tiebreak?.tables ?? null,
     tiebreakResult: s.tiebreakResult,
     champion,
@@ -317,10 +376,13 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     serverNow: now,
     tables: cfg.tables,
     claimedTables: Object.keys(s.claims).map(Number).sort((a, b) => a - b),
-    submittedTables: Object.keys(s.bids[s.round] ?? {}).map(Number).sort((a, b) => a - b),
+    submittedTables: Object.keys(s.bids[roundKey(s)] ?? {}).map(Number).sort((a, b) => a - b),
     dish: dish && dishVisible(s) ? { name: dish.name, ingredients: dish.ingredients, image: dish.image } : null,
     // The true price only leaves the server inside a revealed result.
-    result: s.phase === "revealed" ? ((tiebreakRound ? s.tiebreakResult : s.results[s.round]) ?? null) : null,
+    result:
+      s.phase !== "revealed"
+        ? null
+        : ((isPractice(s) ? s.practiceResults[s.practiceRound!] : tiebreakRound ? s.tiebreakResult : s.results[s.round]) ?? null),
     standings,
     leaders: lead,
     roundWinners: results.flatMap((r, i) =>
@@ -335,7 +397,7 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
     ...common(s, cfg, now),
     role: "host",
     connectedTables: [...connectedTables].sort((a, b) => a - b),
-    bidCount: Object.keys(s.bids[s.round] ?? {}).length,
+    bidCount: Object.keys(s.bids[roundKey(s)] ?? {}).length,
   };
 }
 
@@ -353,6 +415,6 @@ export function playerView(s: GameState, cfg: GameConfig, token: string, now: nu
     ...view,
     role: "player",
     myTable,
-    myBid: myTable !== null ? (s.bids[s.round]?.[myTable] ?? null) : null,
+    myBid: myTable !== null ? (s.bids[roundKey(s)]?.[myTable] ?? null) : null,
   };
 }

@@ -19,6 +19,7 @@ import {
   reveal,
   resetGame,
   resetRound,
+  skipPractice,
   start,
   startTiebreak,
   submit,
@@ -41,7 +42,7 @@ export class GameRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
-      this.state = normalizeState(await ctx.storage.get<GameState>(STATE_KEY));
+      this.state = normalizeState(await ctx.storage.get<GameState>(STATE_KEY), this.cfg);
     });
     // Keep-alive pings are answered without waking the object.
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
@@ -138,7 +139,9 @@ export class GameRoom extends DurableObject<Env> {
       case "resetRound":
         return resetRound(this.state);
       case "resetGame":
-        return resetGame(this.state, msg.keepClaims !== false);
+        return resetGame(this.state, msg.keepClaims !== false, this.cfg);
+      case "skipPractice":
+        return skipPractice(this.state);
       case "release":
         return release(this.state, Number(msg.table));
       case "sync":

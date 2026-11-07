@@ -93,6 +93,24 @@ async function main() {
   const badHost = await fetch(`${BASE}/api/host-check?key=wrong`);
   ok(badHost.status === 403, "wrong host key is rejected");
 
+  // ---------- practice ----------
+  if (host.view.isPractice) {
+    console.log(`\n[practice] ${host.view.practiceTotal} practice round(s) configured — playing one, skipping the rest`);
+    host.send({ t: "start" });
+    await host.waitFor((c) => c.view.phase === "open" && c.view.isPractice, 5000, "practice open");
+    players.forEach((p, i) => p.send({ t: "submit", price: i === 6 ? "0.01" : "99999" }));
+    await host.waitFor((c) => c.view.submittedTables.length === TABLES, 5000, "practice submitted");
+    host.send({ t: "lock" });
+    await host.waitFor((c) => c.view.phase === "locked", 3000, "practice lock");
+    host.send({ t: "reveal" });
+    await host.waitFor((c) => c.view.phase === "revealed", 3000, "practice reveal");
+    ok(host.view.result.winners.join() === "7" && host.view.standings.every((s) => s.wins === 0),
+      "practice round reveals a winner (table 7) but nobody gets a point");
+    host.send({ t: "skipPractice" });
+    await host.waitFor((c) => !c.view.isPractice && c.view.practiceDone && c.view.phase === "waiting" && c.view.roundNumber === 1, 3000, "skip");
+    ok(players.every((p) => p.view.myBid === null), "after practice, round 1 starts clean (no leftover guesses)");
+  }
+
   const totalRounds = host.view.totalRounds;
   const wins = new Map();
   for (let r = 1; r <= totalRounds; r++) {
@@ -175,6 +193,10 @@ async function main() {
   console.log("\n[tiebreak] forcing a 5-way tie, then playing the tiebreaker");
   host.send({ t: "resetGame", keepClaims: true });
   await host.waitFor((c) => c.view.phase === "waiting" && c.view.roundNumber === 1 && c.view.standings.every((s) => s.wins === 0), 5000, "reset");
+  if (host.view.isPractice) {
+    host.send({ t: "skipPractice" });
+    await host.waitFor((c) => !c.view.isPractice, 3000, "skip practice");
+  }
   for (let r = 1; r <= totalRounds; r++) {
     host.send({ t: "start" });
     await host.waitFor((c) => c.view.phase === "open" && c.view.roundNumber === r, 5000, "open");
