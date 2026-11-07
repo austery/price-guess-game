@@ -170,6 +170,48 @@ async function main() {
   const top = Math.max(0, ...wins.values());
   console.log(`  leaders: table(s) ${host.view.leaders.join(", ") || "none"} with ${top} round win(s)`);
 
+  // ---------- deterministic tiebreaker scenario ----------
+  // Round r is won by table r (it bids 1 cent, everyone else bids way over) -> 5-way tie.
+  console.log("\n[tiebreak] forcing a 5-way tie, then playing the tiebreaker");
+  host.send({ t: "resetGame", keepClaims: true });
+  await host.waitFor((c) => c.view.phase === "waiting" && c.view.roundNumber === 1 && c.view.standings.every((s) => s.wins === 0), 5000, "reset");
+  for (let r = 1; r <= totalRounds; r++) {
+    host.send({ t: "start" });
+    await host.waitFor((c) => c.view.phase === "open" && c.view.roundNumber === r, 5000, "open");
+    players.forEach((p, i) => p.send({ t: "submit", price: i + 1 === r ? "0.01" : "99999" }));
+    await host.waitFor((c) => c.view.submittedTables.length === TABLES, 5000, "all submitted");
+    host.send({ t: "lock" });
+    await host.waitFor((c) => c.view.phase === "locked", 3000, "lock");
+    host.send({ t: "reveal" });
+    await host.waitFor((c) => c.view.phase === "revealed", 3000, "reveal");
+    host.send({ t: "next" });
+    await host.waitFor((c) => c.view.phase === (r === totalRounds ? "final" : "waiting"), 3000, "next");
+  }
+  ok(host.view.champion === null && host.view.leaders.join() === "1,2,3,4,5" && host.view.canStartTiebreak,
+    "5 different round winners -> tie for first, tiebreaker offered");
+  host.send({ t: "startTiebreak" });
+  await host.waitFor((c) => c.view.isTiebreak && c.view.phase === "waiting", 3000, "tiebreak waiting");
+  host.send({ t: "start" });
+  await Promise.all([host, ...players].map((p) => p.waitFor((c) => c.view.isTiebreak && c.view.phase === "open", 5000, "tb open")));
+  players[9].send({ t: "submit", price: "1.00" }); // table 10 is not tied
+  await players[9].waitFor((c) => c.errors.at(-1)?.code === "not_in_tiebreak", 3000, "tb reject");
+  ok(true, "a table that isn't tied can't answer the tiebreaker");
+  // tied tables: 1 and 2 go way over, 3 goes over by less, 4 and 5 don't answer -> all over -> closest (3) wins
+  players[0].send({ t: "submit", price: "99999" });
+  players[1].send({ t: "submit", price: "88888" });
+  players[2].send({ t: "submit", price: "77777" });
+  await host.waitFor((c) => c.view.submittedTables.length === 3, 3000, "tb submitted");
+  host.send({ t: "lock" });
+  await host.waitFor((c) => c.view.phase === "locked", 3000, "tb lock");
+  ok(!host.sawPrice && players.every((p) => !p.sawPrice), "tiebreaker price not sent before reveal");
+  host.send({ t: "reveal" });
+  await host.waitFor((c) => c.view.phase === "revealed", 3000, "tb reveal");
+  ok(host.view.result.winners[0] === 3 && host.view.result.decidedBy === "closest",
+    "all tied tables over -> closest guess (table 3) wins the tiebreaker");
+  host.send({ t: "next" });
+  await Promise.all([host, ...players].map((p) => p.waitFor((c) => c.view.phase === "final" && c.view.champion, 5000, "champion")));
+  ok(players.every((p) => p.view.champion.table === 3), "every phone shows Table 3 as champion");
+
   [host, ...players].forEach((c) => c.close());
   console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed.");
   process.exit(failures ? 1 : 0);

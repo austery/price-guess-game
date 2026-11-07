@@ -4,10 +4,11 @@
 // True prices never leave the server until the host reveals a round.
 // Do NOT put prices anywhere under public/ — everything there is downloadable.
 
+/** One question: a dish, a product, a basket… anything with a price. */
 export interface Dish {
   /** Shown on the big screen (and phones). */
   name: string;
-  /** 3–6 key ingredients, shown as a list. */
+  /** Optional bullet list (e.g. 3–6 key ingredients). Use [] for none. */
   ingredients: string[];
   /** Path under public/, e.g. "/dishes/k3f9a.svg". Use an unguessable file name. */
   image?: string;
@@ -32,16 +33,24 @@ export interface Rules {
 
 export interface GameConfig {
   title: string;
+  /** One line telling players what to guess, shown on the join screen and phones. */
+  guessPrompt: string;
   tables: number;
   roundSeconds: number;
   /** Extra time the server still accepts bids after the countdown hits 0 (network latency). */
   submitGraceMs: number;
   rules: Rules;
   dishes: Dish[];
+  /**
+   * Played only if two or more tables are tied for first after all rounds.
+   * Only the tied tables answer. Leave undefined to just show the tie.
+   */
+  tiebreaker?: Dish;
 }
 
 export const GAME_CONFIG: GameConfig = {
   title: "Guess the Ingredients Price",
+  guessPrompt: "Guess the total price of the ingredients listed.",
   tables: 15,
   roundSeconds: 15,
   submitGraceMs: 750,
@@ -84,4 +93,10 @@ export const GAME_CONFIG: GameConfig = {
       priceCents: 2233,
     },
   ],
+  tiebreaker: {
+    name: "Tiebreaker: Breakfast Basket",
+    ingredients: ["Eggs (dozen)", "Bacon (375 g)", "Sourdough loaf", "Orange juice (1.75 L)", "Maple syrup (250 ml)"],
+    image: "/dishes/demo-tiebreak-h5c3.svg",
+    priceCents: 3418,
+  },
 };

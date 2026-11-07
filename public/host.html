@@ -94,11 +94,11 @@
       if (!view) return null;
       const last = view.roundNumber >= view.totalRounds;
       switch (view.phase) {
-        case "waiting": return { label: `▶ Start round ${view.roundNumber}`, t: "start" };
+        case "waiting": return { label: view.isTiebreak ? "▶ Start tiebreaker" : `▶ Start round ${view.roundNumber}`, t: "start" };
         case "open": return { label: "⏳ Round in progress…", t: null };
         case "locked": return { label: "🎉 Reveal price", t: "reveal" };
-        case "revealed": return { label: last ? "🏆 Final results" : "➡ Scoreboard / next dish", t: "next" };
-        default: return { label: "Game over", t: null };
+        case "revealed": return { label: last || view.isTiebreak ? "🏆 Final results" : "➡ Scoreboard / next round", t: "next" };
+        default: return view.canStartTiebreak ? { label: "⚔ Tiebreaker", t: "startTiebreak" } : { label: "Game over", t: null };
       }
     }
     primary.onclick = () => { const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
@@ -131,14 +131,16 @@
       document.getElementById("resetRound").disabled = view.phase === "final";
 
       document.getElementById("topLeft").innerHTML =
-        view.phase === "final" ? `<strong>${esc(view.title)}</strong>` : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
+        view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
+        : view.isTiebreak ? `<strong>Tiebreaker</strong> · Tables ${view.tiebreakTables.join(", ")}`
+        : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
       document.getElementById("topRight").textContent =
         `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
 
       const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
       if (k === lastKey) return;
       lastKey = k;
-      if (view.phase === "waiting") return view.roundNumber === 1 ? renderJoin() : renderStandings(false);
+      if (view.phase === "waiting") return view.isTiebreak ? renderTiebreakIntro() : view.roundNumber === 1 ? renderJoin() : renderStandings(false);
       if (view.phase === "open" || view.phase === "locked") return renderDish();
       if (view.phase === "revealed") return renderReveal();
       if (view.phase === "final") return renderStandings(true);
@@ -146,7 +148,8 @@
 
     function chips(highlightSubmitted, compact = false) {
       const claimed = new Set(view.claimedTables), online = new Set(view.connectedTables), sub = new Set(view.submittedTables);
-      return `<div class="chips${compact ? " compact" : ""}">${Array.from({ length: view.tables }, (_, i) => i + 1).map((t) => {
+      const shown = view.isTiebreak ? view.tiebreakTables : Array.from({ length: view.tables }, (_, i) => i + 1);
+      return `<div class="chips${compact ? " compact" : ""}">${shown.map((t) => {
         const cls = ["chip", claimed.has(t) && "claimed", online.has(t) && "connected", highlightSubmitted && sub.has(t) && "submitted"].filter(Boolean).join(" ");
         return `<div class="${cls}" data-release="${claimed.has(t) ? t : ""}" title="${claimed.has(t) ? "Click to release this table" : ""}">${t}</div>`;
       }).join("")}</div>`;
@@ -163,8 +166,8 @@
           <div>
             <h1>Scan to join — one phone per table</h1>
             <div class="url">${esc(joinUrl)}</div>
-            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for the first dish.
-              Guess the total price of the ingredients — <strong>closest without going over wins!</strong></p>
+            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for round 1.
+              ${esc(view.guessPrompt)} <strong>Closest without going over wins!</strong></p>
             ${chips(false)}
           </div>
         </div>`;
@@ -186,13 +189,35 @@
       tick();
     }
 
+    function tiebreakHow(r) {
+      if (r.decidedBy === "under") return "Closest without going over.";
+      if (r.decidedBy === "closest") return "Everyone went over — the closest guess wins.";
+      return r.lotFrom.length === r.participants.length && !r.entries.length
+        ? "No table answered — winner drawn by lot."
+        : `Still tied (Tables ${r.lotFrom.join(", ")}) — winner drawn by lot.`;
+    }
+
+    function renderTiebreakIntro() {
+      main.innerHTML = `
+        <div class="standings">
+          <h1>⚔ Tiebreaker!</h1>
+          <p style="font-size:2.4vw">Tables <strong>${view.tiebreakTables.join(", ")}</strong> are tied for first place.</p>
+          <p class="muted" style="font-size:1.8vw">One more question — only these tables answer. ${view.roundSeconds} seconds, closest without going over wins.
+            If everyone goes over, the closest guess wins; if still tied, we draw lots.</p>
+          ${chips(false, true)}
+        </div>`;
+    }
+
     function renderReveal() {
       const r = view.result;
+      const headline = view.isTiebreak
+        ? `🏆 Table ${r.winners[0]} wins the tiebreaker!<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
+        : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
       main.innerHTML = `
         <div class="reveal">
           <div>
             <div class="truth">${esc(view.dish?.name ?? "")}<span class="price">${formatCents(r.priceCents)}</span></div>
-            <div class="winner">${r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round."}</div>
+            <div class="winner">${headline}</div>
           </div>
           <ul class="bids">${r.entries.length ? r.entries.map((e) => `
             <li class="${e.winner ? "win" : e.over ? "over" : ""}"><span>Table ${e.table}</span>
@@ -203,21 +228,29 @@
 
     function renderStandings(final) {
       const lead = view.leaders;
+      const champ = view.champion;
       const rows = view.standings.filter((s) => s.wins > 0);
       const title = final
-        ? lead.length === 1 ? `🏆 Table ${lead[0]} is the champion!` : lead.length > 1 ? `Tie for first: Table ${lead.join(", ")}` : "Game over"
+        ? champ ? `🏆 Table ${champ.table} is the champion!` : lead.length > 1 ? `Tie for first: Tables ${lead.join(", ")}` : "Game over"
         : `Scoreboard — next up: round ${view.roundNumber} of ${view.totalRounds}`;
+      let note = "";
+      if (final && champ && champ.how !== "rounds") note = `Won the tiebreaker against Tables ${view.tiebreakTables.filter((t) => t !== champ.table).join(", ")}.`;
+      else if (final && !champ && view.canStartTiebreak) note = "Press Space for the tiebreaker — only the tied tables answer.";
+      else if (final && !champ && lead.length > 1) note = "No tiebreaker question configured — the host decides.";
       main.innerHTML = `
         <div class="standings">
           <h1>${esc(title)}</h1>
-          ${final && lead.length > 1 ? `<p class="muted" style="font-size:1.8vw">Tiebreak rule to be decided by the host.</p>` : ""}
+          ${note ? `<p class="muted" style="font-size:1.8vw">${esc(note)}</p>` : ""}
           ${rows.length ? `<table>${rows.map((s) => `
             <tr class="${s.rank === 1 ? "lead" : ""}"><td>#${s.rank}</td><td>Table ${s.table}</td>
             <td>${s.wins} round${s.wins === 1 ? "" : "s"}</td><td class="muted">${s.roundsWon.map((n) => `R${n}`).join(" ")}</td></tr>`).join("")}
           </table>` : `<p class="muted">No winners yet.</p>`}
           ${final ? `<h2 style="margin-top:2vw">Round by round</h2><table>${view.roundWinners.map((w) => `
             <tr><td>R${w.roundNumber}</td><td>${esc(w.dishName)}</td><td class="price">${formatCents(w.priceCents)}</td>
-            <td>${w.winners.length ? `Table ${w.winners.join(", ")}` : "—"}</td></tr>`).join("")}</table>` : chips(false, true)}
+            <td>${w.winners.length ? `Table ${w.winners.join(", ")}` : "—"}</td></tr>`).join("")}
+            ${view.tiebreakResult ? `<tr><td>TB</td><td>${esc(view.dish?.name ?? "Tiebreaker")}</td>
+              <td class="price">${formatCents(view.tiebreakResult.priceCents)}</td><td>Table ${view.tiebreakResult.winners[0]}</td></tr>` : ""}
+            </table>` : chips(false, true)}
         </div>`;
     }
 

@@ -146,3 +146,80 @@ export function leaders(standings: Standing[]): number[] {
   if (standings.length === 0 || standings[0].wins === 0) return [];
   return standings.filter((s) => s.rank === 1).map((s) => s.table);
 }
+
+// ---------- tiebreaker (overall winner) ----------
+
+/**
+ * How the tiebreaker was decided:
+ *  - "under":   one table closest without going over (normal rule)
+ *  - "closest": every tied table went over -> closest to the price wins
+ *  - "lot":     still tied (same top bid / same distance / nobody answered) -> random draw
+ */
+export type TiebreakDecision = "under" | "closest" | "lot";
+
+export interface TiebreakResult extends RoundResult {
+  /** Tables that were tied for first and played the tiebreaker. */
+  participants: number[];
+  decidedBy: TiebreakDecision;
+  /** Tables the lot was drawn from (empty unless decidedBy === "lot"). */
+  lotFrom: number[];
+}
+
+/**
+ * Agreed rule:
+ *  1. closest without going over wins;
+ *  2. if all tied tables went over, the one closest to the price wins;
+ *  3. if still tied (or nobody answered), draw lots among them.
+ * A table that doesn't answer loses (it can only win through the "nobody answered" draw).
+ */
+export function scoreTiebreak(
+  bids: Record<number, Bid>,
+  priceCents: number,
+  participants: number[],
+  rand: () => number = Math.random,
+): TiebreakResult {
+  const allowed = new Set(participants);
+  const own: Record<number, Bid> = {};
+  for (const [t, b] of Object.entries(bids)) if (allowed.has(Number(t))) own[Number(t)] = b;
+
+  const base = scoreRound(own, priceCents, "all-score");
+  let winner: number | null = null;
+  let decidedBy: TiebreakDecision;
+  let lotFrom: number[] = [];
+
+  if (base.winners.length === 1) {
+    winner = base.winners[0];
+    decidedBy = "under";
+  } else if (base.winners.length > 1) {
+    // Same top valid bid -> same distance -> straight to the draw.
+    decidedBy = "lot";
+    lotFrom = base.winners;
+  } else if (base.entries.length > 0) {
+    // Everyone over: closest to the price (= the lowest bid) wins.
+    const best = Math.min(...base.entries.map((e) => Math.abs(e.diff)));
+    const closest = base.entries.filter((e) => Math.abs(e.diff) === best).map((e) => e.table);
+    if (closest.length === 1) {
+      winner = closest[0];
+      decidedBy = "closest";
+    } else {
+      decidedBy = "lot";
+      lotFrom = closest;
+    }
+  } else {
+    decidedBy = "lot";
+    lotFrom = [...participants];
+  }
+
+  if (winner === null) {
+    lotFrom = [...lotFrom].sort((a, b) => a - b);
+    winner = lotFrom[Math.min(lotFrom.length - 1, Math.floor(rand() * lotFrom.length))];
+  }
+  return {
+    priceCents,
+    entries: base.entries.map((e) => ({ ...e, winner: e.table === winner })),
+    winners: [winner],
+    participants: [...participants].sort((a, b) => a - b),
+    decidedBy,
+    lotFrom,
+  };
+}

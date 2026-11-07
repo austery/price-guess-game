@@ -4,6 +4,10 @@
 // Phases for each round (round index r, 0-based):
 //   waiting  --start-->  open  --(deadline+grace | host "lock")-->  locked  --reveal-->  revealed
 //   revealed --next-->   waiting (r+1)          ... after the last round:  revealed --next--> final
+//
+// Tiebreaker: if 2+ tables are tied for first at "final", the host can start one extra round
+// (round index = dishes.length) that only the tied tables answer:
+//   final --startTiebreak--> waiting --start--> open --> locked --reveal--> revealed --next--> final
 
 import type { GameConfig } from "./config";
 import {
@@ -11,9 +15,12 @@ import {
   leaders,
   parsePriceToCents,
   scoreRound,
+  scoreTiebreak,
   type Bid,
   type RoundResult,
   type Standing,
+  type TiebreakDecision,
+  type TiebreakResult,
 } from "./scoring";
 
 export type Phase = "waiting" | "open" | "locked" | "revealed" | "final";
@@ -30,6 +37,9 @@ export interface GameState {
   bids: Record<string, Record<string, Bid>>;
   /** round index -> result, filled on reveal. */
   results: Record<string, RoundResult>;
+  /** Set when the tiebreaker starts: the tables tied for first. */
+  tiebreak: { tables: number[] } | null;
+  tiebreakResult: TiebreakResult | null;
   /** Bumped on every change; handy for debugging and clients. */
   version: number;
 }
@@ -44,7 +54,34 @@ export class GameError extends Error {
 }
 
 export function initialState(): GameState {
-  return { phase: "waiting", round: 0, deadline: null, claims: {}, bids: {}, results: {}, version: 0 };
+  return {
+    phase: "waiting",
+    round: 0,
+    deadline: null,
+    claims: {},
+    bids: {},
+    results: {},
+    tiebreak: null,
+    tiebreakResult: null,
+    version: 0,
+  };
+}
+
+/** Fill fields added in later versions when loading an older saved state. */
+export function normalizeState(saved: Partial<GameState> | undefined): GameState {
+  return { ...initialState(), ...(saved ?? {}) };
+}
+
+export function isTiebreakRound(s: GameState, cfg: GameConfig): boolean {
+  return s.round >= cfg.dishes.length;
+}
+
+function currentDish(s: GameState, cfg: GameConfig) {
+  return isTiebreakRound(s, cfg) ? cfg.tiebreaker : cfg.dishes[s.round];
+}
+
+function standingsOf(s: GameState, cfg: GameConfig): Standing[] {
+  return computeStandings(cfg.tables, cfg.dishes.map((_, i) => s.results[i]));
 }
 
 function bump(s: GameState) {
@@ -84,6 +121,9 @@ export function submit(s: GameState, cfg: GameConfig, token: string, priceInput:
   }
   const lt = lockTime(s, cfg);
   if (lt !== null && now > lt) throw new GameError("not_open", "Time's up for this round.");
+  if (isTiebreakRound(s, cfg) && !s.tiebreak?.tables.includes(table)) {
+    throw new GameError("not_in_tiebreak", "Only the tied tables answer the tiebreaker.");
+  }
   const parsed = parsePriceToCents(priceInput);
   if (!parsed.ok) throw new GameError("bad_price", parsed.reason);
   const roundBids = (s.bids[s.round] ??= {});
@@ -100,9 +140,10 @@ export function submit(s: GameState, cfg: GameConfig, token: string, priceInput:
 
 export function start(s: GameState, cfg: GameConfig, now: number) {
   if (s.phase !== "waiting") throw new GameError("bad_phase", "A round is already in progress.");
-  if (s.round >= cfg.dishes.length) throw new GameError("bad_phase", "No more rounds.");
+  if (isTiebreakRound(s, cfg) && !(s.tiebreak && cfg.tiebreaker)) throw new GameError("bad_phase", "No more rounds.");
   s.bids[s.round] = {};
   delete s.results[s.round];
+  if (isTiebreakRound(s, cfg)) s.tiebreakResult = null;
   s.phase = "open";
   s.deadline = now + cfg.roundSeconds * 1000;
   bump(s);
@@ -127,10 +168,14 @@ export function lockNow(s: GameState, now: number) {
   bump(s);
 }
 
-export function reveal(s: GameState, cfg: GameConfig) {
+export function reveal(s: GameState, cfg: GameConfig, rand: () => number = Math.random) {
   if (s.phase !== "locked") throw new GameError("bad_phase", "Lock the round before revealing.");
-  const dish = cfg.dishes[s.round];
-  s.results[s.round] = scoreRound(s.bids[s.round] ?? {}, dish.priceCents, cfg.rules.roundTie);
+  const bids = s.bids[s.round] ?? {};
+  if (isTiebreakRound(s, cfg)) {
+    s.tiebreakResult = scoreTiebreak(bids, cfg.tiebreaker!.priceCents, s.tiebreak!.tables, rand);
+  } else {
+    s.results[s.round] = scoreRound(bids, cfg.dishes[s.round].priceCents, cfg.rules.roundTie);
+  }
   s.phase = "revealed";
   bump(s);
 }
@@ -138,11 +183,25 @@ export function reveal(s: GameState, cfg: GameConfig) {
 export function next(s: GameState, cfg: GameConfig) {
   if (s.phase !== "revealed") throw new GameError("bad_phase", "Reveal the round first.");
   s.deadline = null;
-  if (s.round >= cfg.dishes.length - 1) s.phase = "final";
+  if (s.round >= cfg.dishes.length - 1) s.phase = "final"; // last regular round, or the tiebreaker
   else {
     s.round++;
     s.phase = "waiting";
   }
+  bump(s);
+}
+
+/** After all rounds, if 2+ tables share first place: only they play one extra round. */
+export function startTiebreak(s: GameState, cfg: GameConfig) {
+  if (s.phase !== "final") throw new GameError("bad_phase", "The tiebreaker comes after the last round.");
+  if (!cfg.tiebreaker) throw new GameError("no_tiebreaker", "No tiebreaker question is configured.");
+  if (s.tiebreak) throw new GameError("bad_phase", "The tiebreaker has already been played.");
+  const tied = leaders(standingsOf(s, cfg));
+  if (tied.length < 2) throw new GameError("bad_phase", "There is no tie for first place.");
+  s.tiebreak = { tables: tied };
+  s.round = cfg.dishes.length;
+  s.phase = "waiting";
+  s.deadline = null;
   bump(s);
 }
 
@@ -151,6 +210,7 @@ export function resetRound(s: GameState) {
   if (s.phase === "final") throw new GameError("bad_phase", "The game is over. Use Reset game instead.");
   delete s.bids[s.round];
   delete s.results[s.round];
+  s.tiebreakResult = null;
   s.phase = "waiting";
   s.deadline = null;
   bump(s);
@@ -177,9 +237,25 @@ export interface DishView {
   image?: string;
 }
 
+export interface Champion {
+  table: number;
+  /** "rounds" = most round wins outright; otherwise how the tiebreaker was decided. */
+  how: "rounds" | TiebreakDecision;
+}
+
 export interface CommonView {
   title: string;
+  guessPrompt: string;
   phase: Phase;
+  /** true while the tiebreaker round is being played. */
+  isTiebreak: boolean;
+  /** Tables playing the tiebreaker (null if none). */
+  tiebreakTables: number[] | null;
+  tiebreakResult: TiebreakResult | null;
+  /** Set once the overall winner is known. */
+  champion: Champion | null;
+  /** Host may start the tiebreaker now. */
+  canStartTiebreak: boolean;
   /** 1-based for display. */
   roundNumber: number;
   totalRounds: number;
@@ -190,7 +266,7 @@ export interface CommonView {
   claimedTables: number[];
   submittedTables: number[];
   dish: DishView | null;
-  result: RoundResult | null;
+  result: RoundResult | TiebreakResult | null;
   standings: Standing[];
   leaders: number[];
   /** Results of every revealed round so far (for the final screen). */
@@ -217,10 +293,23 @@ function dishVisible(s: GameState) {
 function common(s: GameState, cfg: GameConfig, now: number): CommonView {
   const results = cfg.dishes.map((_, i) => s.results[i]);
   const standings = computeStandings(cfg.tables, results);
-  const dish = cfg.dishes[s.round];
+  const lead = leaders(standings);
+  const dish = currentDish(s, cfg);
+  const tiebreakRound = isTiebreakRound(s, cfg);
+  let champion: Champion | null = null;
+  if (s.phase === "final" || (tiebreakRound && s.phase === "revealed")) {
+    if (lead.length === 1) champion = { table: lead[0], how: "rounds" };
+    else if (s.tiebreakResult) champion = { table: s.tiebreakResult.winners[0], how: s.tiebreakResult.decidedBy };
+  }
   return {
     title: cfg.title,
+    guessPrompt: cfg.guessPrompt,
     phase: s.phase,
+    isTiebreak: tiebreakRound,
+    tiebreakTables: s.tiebreak?.tables ?? null,
+    tiebreakResult: s.tiebreakResult,
+    champion,
+    canStartTiebreak: s.phase === "final" && lead.length > 1 && !!cfg.tiebreaker && !s.tiebreak,
     roundNumber: s.round + 1,
     totalRounds: cfg.dishes.length,
     roundSeconds: cfg.roundSeconds,
@@ -231,9 +320,9 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     submittedTables: Object.keys(s.bids[s.round] ?? {}).map(Number).sort((a, b) => a - b),
     dish: dish && dishVisible(s) ? { name: dish.name, ingredients: dish.ingredients, image: dish.image } : null,
     // The true price only leaves the server inside a revealed result.
-    result: s.phase === "revealed" ? (s.results[s.round] ?? null) : null,
+    result: s.phase === "revealed" ? ((tiebreakRound ? s.tiebreakResult : s.results[s.round]) ?? null) : null,
     standings,
-    leaders: leaders(standings),
+    leaders: lead,
     roundWinners: results.flatMap((r, i) =>
       r ? [{ roundNumber: i + 1, dishName: cfg.dishes[i].name, priceCents: r.priceCents, winners: r.winners }] : [],
     ),

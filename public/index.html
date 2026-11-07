@@ -57,26 +57,50 @@
     function render() {
       if (!view) return;
       document.getElementById("tableLabel").textContent = view.myTable ? `Table ${view.myTable}` : "";
-      const phaseKey = `${view.phase}|${view.roundNumber}`;
+      const phaseKey = `${view.phase}|${view.roundNumber}|${view.isTiebreak}`;
       if (phaseKey !== lastPhase) { lastPhase = phaseKey; notice.classList.add("hidden"); }
       // While a round is open, other tables submitting must NOT rebuild the page
       // (that would close the phone keyboard), so the key ignores the global version.
       const key = view.phase === "open" && view.myTable && !changingTable
-        ? ["open", view.roundNumber, view.myTable, view.myBid?.cents ?? ""].join("|")
+        ? ["open", view.roundNumber, view.isTiebreak, view.myTable, view.myBid?.cents ?? ""].join("|")
         : [view.version, view.phase, view.myTable, changingTable].join("|");
       if (key === lastRenderKey) return tick();
       lastRenderKey = key;
 
       if (!view.myTable || changingTable) return renderPickTable();
-      const roundLabel = `Round ${view.roundNumber} of ${view.totalRounds}`;
+      const roundLabel = view.isTiebreak ? "Tiebreaker" : `Round ${view.roundNumber} of ${view.totalRounds}`;
+      const inTiebreak = view.isTiebreak && view.tiebreakTables.includes(view.myTable);
+
+      // Tiebreaker: tables that aren't tied just watch.
+      if (view.isTiebreak && !inTiebreak && (view.phase === "waiting" || view.phase === "open" || view.phase === "locked")) {
+        app.innerHTML = `
+          <div class="card">
+            <h1>⚔ Tiebreaker</h1>
+            <p>Tables <strong>${view.tiebreakTables.join(", ")}</strong> are tied for first place and are playing one more question.</p>
+            <p class="muted">Your table doesn't need to answer — watch the big screen!</p>
+          </div>
+          ${view.phase === "open" ? `<div class="countdown" id="cd"></div>` : ""}`;
+        return tick();
+      }
+
+      if (view.phase === "waiting" && view.isTiebreak) {
+        app.innerHTML = `
+          <div class="card">
+            <h1>⚔ Tiebreaker!</h1>
+            <p>Your table is <strong>tied for first place</strong> with Table ${view.tiebreakTables.filter((t) => t !== view.myTable).join(", ")}.</p>
+            <p class="muted">One more question, ${view.roundSeconds} seconds. Closest without going over wins.
+            If everyone goes over, the closest guess wins; if still tied, we draw lots.</p>
+          </div>`;
+        return;
+      }
 
       if (view.phase === "waiting") {
         app.innerHTML = `
           <div class="card">
             <h1>You're in! 🎉</h1>
             <p class="muted">${esc(roundLabel)} is about to start. Watch the big screen —
-            when the dish appears you'll have <strong>${view.roundSeconds} seconds</strong> to enter
-            your table's guess for the total ingredient price.</p>
+            when the next item appears you'll have <strong>${view.roundSeconds} seconds</strong> to enter
+            your table's guess. ${esc(view.guessPrompt)}</p>
             <p><strong>Closest without going over wins the round.</strong></p>
           </div>
           ${standingsMini()}
@@ -101,7 +125,7 @@
             </div>
             <button type="submit">${mine ? "Update" : "Submit"}</button>
           </form>
-          <div class="muted" id="mine">${mine ? `Your table's guess: <strong class="price">${mine}</strong>` : "Total of all ingredients listed. Don't go over!"}</div>`;
+          <div class="muted" id="mine">${mine ? `Your table's guess: <strong class="price">${mine}</strong>` : `${esc(view.guessPrompt)} Don't go over!`}</div>`;
         const input = document.getElementById("price");
         input.value = draft;
         input.oninput = () => (draft = input.value);
@@ -129,8 +153,10 @@
       if (view.phase === "revealed") {
         const r = view.result;
         const me = r.entries.find((e) => e.table === view.myTable);
-        let verdict = `<span class="muted">No guess from your table this round.</span>`;
-        if (me?.winner) verdict = `<span class="good">🏆 Your table wins this round!</span>`;
+        const what = view.isTiebreak ? "the tiebreaker" : "this round";
+        let verdict = inTiebreak || !view.isTiebreak ? `<span class="muted">No guess from your table.</span>` : "";
+        if (me?.winner) verdict = `<span class="good">🏆 Your table wins ${what}!</span>`;
+        else if (me && view.isTiebreak) verdict = `Not this time — Table ${r.winners[0]} wins the tiebreaker.`;
         else if (me?.over) verdict = `<span class="bad">Over by ${formatCents(-me.diff)} — disqualified.</span>`;
         else if (me) verdict = `Under by <span class="price">${formatCents(me.diff)}</span>.`;
         app.innerHTML = `
@@ -138,9 +164,10 @@
             <div class="muted">${esc(view.dish?.name ?? "")}</div>
             <div class="big-result">Actual: <span class="price">${formatCents(r.priceCents)}</span></div>
             <p style="text-align:center;font-size:20px">${verdict}</p>
-            <p style="text-align:center">${r.winners.length
-              ? `Round winner: <strong>Table ${r.winners.join(", ")}</strong>`
-              : "Nobody won — every guess went over."}</p>
+            <p style="text-align:center">${view.isTiebreak
+              ? `Tiebreaker winner: <strong>Table ${r.winners[0]}</strong><br><span class="muted">${
+                  r.decidedBy === "under" ? "Closest without going over." : r.decidedBy === "closest" ? "Everyone went over — closest guess wins." : "Still tied — drawn by lot."}</span>`
+              : r.winners.length ? `Round winner: <strong>Table ${r.winners.join(", ")}</strong>` : "Nobody won — every guess went over."}</p>
           </div>
           <div class="card"><ul class="list">${r.entries.map((e) => `
             <li class="${e.winner ? "win" : e.over ? "over" : ""} ${e.table === view.myTable ? "me" : ""}">
@@ -151,9 +178,13 @@
 
       if (view.phase === "final") {
         const lead = view.leaders;
+        const champ = view.champion;
         const mine = view.standings.find((s) => s.table === view.myTable);
+        const headline = champ
+          ? champ.table === view.myTable ? "🏆 Your table is the champion!" : `🏆 Table ${champ.table} is the champion!`
+          : lead.length > 1 ? `Tie for first: Tables ${lead.join(", ")}${view.canStartTiebreak ? " — tiebreaker coming up!" : ""}` : "Game over";
         app.innerHTML = `
-          <div class="card big-result">${lead.length === 1 ? `🏆 Table ${lead[0]} wins!` : lead.length > 1 ? `Tie for first: Table ${lead.join(", ")}` : "Game over"}</div>
+          <div class="card big-result">${headline}</div>
           <div class="card">Your table won <strong>${mine?.wins ?? 0}</strong> round(s).</div>
           ${standingsMini(true)}`;
       }

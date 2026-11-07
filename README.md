@@ -20,6 +20,8 @@
 - `dishes`：5 道菜的名字、食材、图片路径、真实价格。**价格以"分"为单位**，比如 $30.75 写成 `3075`。
 - `roundSeconds`：倒计时秒数。
 - `rules`：几条可调整的规则（平局、能否改价、手机是否显示图片、是否公开所有报价）。
+- `tiebreaker`：加赛题，只在总冠军并列时使用。
+- `guessPrompt`：告诉大家要猜什么的一句话。
 
 菜品图片放在 `public/dishes/`。**文件名要起得别人猜不到**（例如 `main1-k8d2x.jpg`），因为 `public/` 里的文件任何人都能直接访问。
 
@@ -49,10 +51,10 @@ npm run simulate      # 需要先 npm run dev：模拟 15 部手机 + 主持人�
 
 ⚠️ `simulate` 会重置游戏，不要在活动现场对正式网址运行。
 
-## 部署（待配置）
+## 部署
 
-1. `npx wrangler login`（或者用 Cloudflare API Token）
-2. `npx wrangler secret put HOST_KEY`，设置一个主持人密钥
-3. `npm run deploy`
+1. `npx wrangler login`
+2. `npm run deploy`
+3. `npx wrangler secret put HOST_KEY`，设置一个主持人密钥（建议用 `openssl rand -hex 12` 生成）
 
 部署后的网址是 `https://price-guess-game.<你的子域名>.workers.dev`。

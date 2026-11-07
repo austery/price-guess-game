@@ -10,6 +10,7 @@ import {
   hostView,
   initialState,
   lockNow,
+  normalizeState,
   lockTime,
   maybeLock,
   next,
@@ -19,6 +20,7 @@ import {
   resetGame,
   resetRound,
   start,
+  startTiebreak,
   submit,
   tableOf,
   type GameState,
@@ -39,7 +41,7 @@ export class GameRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
-      this.state = (await ctx.storage.get<GameState>(STATE_KEY)) ?? initialState();
+      this.state = normalizeState(await ctx.storage.get<GameState>(STATE_KEY));
     });
     // Keep-alive pings are answered without waking the object.
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
@@ -131,6 +133,8 @@ export class GameRoom extends DurableObject<Env> {
         return reveal(this.state, this.cfg);
       case "next":
         return next(this.state, this.cfg);
+      case "startTiebreak":
+        return startTiebreak(this.state, this.cfg);
       case "resetRound":
         return resetRound(this.state);
       case "resetGame":
