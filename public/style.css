@@ -17,9 +17,11 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--text); }
+html { background: repeating-linear-gradient(135deg, var(--stripe-a) 0 90px, var(--stripe-b) 90px 180px) fixed var(--bg); }
+html, body { margin: 0; color: var(--text); min-height: 100%; }
 body {
-  background: repeating-linear-gradient(135deg, var(--stripe-a) 0 90px, var(--stripe-b) 90px 180px) fixed var(--bg);
+  /* transparent so the host's photo background layers (z-index -2) show through */
+  background: transparent;
   font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.4;
   -webkit-text-size-adjust: 100%;
@@ -110,6 +112,7 @@ body.bar-hidden .screen-main { padding-bottom: 2vw; }
 .dish ul { font-size: 2.3vw; margin: 0; padding-left: 2.4vw; }
 .dish .countdown { font-size: 7.5vw; line-height: 1; margin-top: 1.5vw; text-align: left; }
 .dish .sub { font-size: 1.8vw; color: var(--muted); }
+.cd-label { font-size: 1.5vw; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: -0.3vw 0 0.8vw; }
 .reveal { width: 100%; display: grid; grid-template-columns: 1fr 1.2fr; gap: 3vw; align-items: start; }
 .reveal .truth { font-size: 2vw; color: var(--muted); }
 .reveal .truth .price { display: block; font-size: 8vw; font-weight: 800; color: var(--accent); }
@@ -134,6 +137,11 @@ body.bar-hidden .screen-main { padding-bottom: 2vw; }
 .controls .msg { color: var(--bad); }
 .key-form { max-width: 420px; margin: 20vh auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .key-form input { font-size: 20px; padding: 12px; border-radius: var(--radius); border: 0; }
+
+/* ---------- rotating photo backgrounds (host) ---------- */
+.bg-layer { position: fixed; inset: 0; z-index: -2; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.9s ease; }
+.bg-layer.on { opacity: 1; }
+.bg-shade { position: fixed; inset: 0; z-index: -1; background: linear-gradient(160deg, rgba(110, 10, 50, 0.42), rgba(35, 0, 15, 0.62)); }
 
 /* ---------- intro screens ---------- */
 .script { font-family: var(--script); font-weight: 400; }

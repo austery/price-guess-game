@@ -18,6 +18,9 @@
     <div id="keyMsg" class="bad"></div>
   </form>
 
+  <div id="bgA" class="bg-layer"></div>
+  <div id="bgB" class="bg-layer"></div>
+  <div id="bgShade" class="bg-shade hidden"></div>
   <div id="screen" class="screen hidden">
     <div class="screen-top">
       <span id="topLeft"></span>
@@ -32,13 +35,29 @@
     <button id="skipBtn" class="secondary hidden">Skip practice</button>
     <span class="msg" id="ctlMsg"></span>
     <span class="spacer"></span>
-    <span class="muted" style="font-size:13px">Space = main button · H = hide bar</span>
+    <span class="muted" style="font-size:13px">Space = main button · M = music · H = hide bar</span>
+    <button id="muteBtn" class="secondary"></button>
     <button id="resetRound" class="secondary">Redo round</button>
     <button id="resetGame" class="danger">Reset game</button>
   </div>
 
   <script type="module">
     import { connect, formatCents, esc, secondsLeft } from "/common.js";
+    import { createCountdownSound } from "/sound.js";
+
+    const sound = createCountdownSound();
+    let lastSoundKey = "";
+    /** Music plays only while a round is open; buzzer when it locks; silence on reveal. */
+    function syncSound(v) {
+      const key = `${v.phase}|${v.isPractice}|${v.practiceNumber}|${v.isTiebreak}|${v.roundNumber}`;
+      if (key === lastSoundKey) return;
+      const prev = lastSoundKey;
+      lastSoundKey = key;
+      if (!prev) return; // page just loaded: don't start mid-round
+      if (v.phase === "open") sound.start((v.deadline - v.serverNow) / 1000);
+      else if (v.phase === "locked" && prev.startsWith("open|")) sound.locked();
+      else sound.stop();
+    }
 
     const params = new URLSearchParams(location.search);
     let key = params.get("key") || sessionStorage.getItem("pg-host-key") || "";
@@ -72,12 +91,37 @@
     const main = document.getElementById("main");
     const joinUrl = `${location.origin}/`;
 
+    // ---------- rotating holiday backgrounds (the four Insiders Report covers, blurred) ----------
+    const BACKGROUNDS = [1, 2, 3, 4].map((n) => `/theme/bg-${n}.jpg`);
+    BACKGROUNDS.forEach((u) => (new Image().src = u));
+    let bgShown = null, bgFront = "bgA";
+    function backgroundFor(v) {
+      let seq;
+      if (v.phase === "waiting" && v.introStep < 3) seq = v.introStep; // join, welcome, rules
+      else if (v.phase === "final") seq = 0;
+      else if (v.isPractice) seq = 3 + (v.practiceNumber - 1);
+      else if (v.isTiebreak) seq = 3 + v.practiceTotal + v.totalRounds;
+      else seq = 3 + v.practiceTotal + (v.roundNumber - 1);
+      return BACKGROUNDS[seq % BACKGROUNDS.length];
+    }
+    function setBackground(url) {
+      if (url === bgShown) return;
+      bgShown = url;
+      const back = bgFront === "bgA" ? "bgB" : "bgA";
+      const el = document.getElementById(back);
+      el.style.backgroundImage = `url("${url}")`;
+      el.classList.add("on");
+      document.getElementById(bgFront).classList.remove("on");
+      bgFront = back;
+      document.getElementById("bgShade").classList.remove("hidden");
+    }
+
     function startHost() {
       document.getElementById("screen").classList.remove("hidden");
       document.getElementById("controls").classList.remove("hidden");
       conn = connect({
         params: { role: "host", key },
-        onState: (v) => { view = v; preload(v.preloadImages); render(); },
+        onState: (v) => { view = v; preload(v.preloadImages); syncSound(v); render(); },
         onError: (e) => flash(e.message),
         onStatus: (s) => (document.getElementById("dot").className = `status-dot ${s}`),
       });
@@ -123,7 +167,11 @@
         default: return view.canStartTiebreak ? { label: "⚔ Tiebreaker", t: "startTiebreak" } : { label: "Game over", t: null };
       }
     }
-    primary.onclick = () => { const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
+    primary.onclick = () => { sound.unlock(); const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
+    const muteBtn = document.getElementById("muteBtn");
+    const showMute = () => (muteBtn.textContent = sound.muted ? "🔇 Music off" : "🔊 Music on");
+    muteBtn.onclick = () => { sound.unlock(); sound.setMuted(!sound.muted); showMute(); };
+    showMute();
     lockBtn.onclick = () => conn.send({ t: "lock" });
     document.getElementById("skipBtn").onclick = () => {
       if (confirm("Skip the rest of the practice and start the real game?")) conn.send({ t: "skipPractice" });
@@ -141,6 +189,7 @@
       if (e.target.tagName === "INPUT") return;
       if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); primary.click(); }
       if (e.key === "ArrowLeft" && view?.phase === "waiting" && view.introStep > 0 && view.introStep < 3) conn.send({ t: "introBack" });
+      if (e.key === "m" || e.key === "M") muteBtn.click();
       if (e.key === "h" || e.key === "H") {
         document.getElementById("controls").classList.toggle("hidden");
         document.body.classList.toggle("bar-hidden");
@@ -150,6 +199,7 @@
     // ---------- rendering ----------
     function render() {
       if (!view) return;
+      setBackground(backgroundFor(view));
       const a = primaryAction();
       primary.textContent = a.label;
       primary.disabled = !a.t;
@@ -282,6 +332,7 @@
             <h1 class="${d.name.length > 40 ? "long" : ""}">${esc(d.name)}</h1>
             <ul>${d.ingredients.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
             <div class="countdown" id="cd"></div>
+            <div class="cd-label" id="cdLabel">seconds left</div>
             <div class="sub" id="subCount"></div>
             ${chips(true, true)}
           </div>
@@ -364,6 +415,8 @@
       if (cd) {
         const left = view.phase === "open" ? secondsLeft(view.deadline, conn.serverNow()) : 0;
         cd.textContent = view.phase === "locked" ? "Time's up!" : left;
+        const lbl = document.getElementById("cdLabel");
+        if (lbl) lbl.style.visibility = view.phase === "open" ? "visible" : "hidden";
         cd.classList.toggle("urgent", view.phase === "locked" || left <= 5);
       }
       const sc = document.getElementById("subCount");

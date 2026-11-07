@@ -127,6 +127,7 @@
         const mine = view.myBid ? formatCents(view.myBid.cents) : null;
         app.innerHTML = `
           <div class="countdown" id="cd"></div>
+          <div class="muted" style="text-align:center;margin-top:-14px;font-size:13px;letter-spacing:.08em">SECONDS LEFT</div>
           <div class="card">
             <div class="muted">${esc(roundLabel)}</div>
             <h1>${esc(view.dish?.name ?? "")}</h1>
