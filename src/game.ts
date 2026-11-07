@@ -331,6 +331,8 @@ export interface CommonView {
 
 export interface HostView extends CommonView {
   role: "host";
+  /** Every item image, so the big screen can load them in advance (host only). */
+  preloadImages: string[];
   connectedTables: number[];
   bidCount: number;
 }
@@ -396,6 +398,9 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
   return {
     ...common(s, cfg, now),
     role: "host",
+    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) =>
+      d.image ? [d.image] : [],
+    ),
     connectedTables: [...connectedTables].sort((a, b) => a - b),
     bidCount: Object.keys(s.bids[roundKey(s)] ?? {}).length,
   };

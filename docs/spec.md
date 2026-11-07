@@ -1,6 +1,6 @@
-# 猜食材价格游戏 — 需求说明
+# 猜价格游戏 — 需求说明
 
-> 状态：核心功能和加赛已实现，规则已全部确认。题目内容（公司产品）和界面细节待定。
+> 状态：功能完成，真实产品已导入。界面细节和最终题目选择可再调整。
 
 ## 游戏规则（来自活动原始说明）
 
@@ -74,11 +74,31 @@
 - 加赛只决定冠军，不改变 5 轮的得分。加赛只进行一次，不会无限加下去。
 - 建议另外准备一道后备题，以防加赛题临时出问题需要替换。
 
-## 题目内容（待定）
+## 题目内容
 
-- 题目是**公司在超市销售的产品**，不是菜。程序不限制题目类型：每题 = 名称 + 可选说明列表 + 图片 + 真实价格。
-- 原规则要求猜"食材总价"，资料难以取得；可能改为直接猜产品售价，届时只需修改 `guessPrompt` 和题目内容。
-- 图片优先用现成的产品宣传图（例如 flyer、官网图）。
+题目是 16 个 President's Choice 产品，来自 `Candidate_Items.pptx` 和 `item_list_and_price.xlsx`。表格里的价格已和幻灯片上的价格逐一核对，16 个全部一致。
+
+- **玩法改为直接猜产品售价**，提示语为 "Guess the shelf price of this item (before tax)."
+- **图片**：用太太的幻灯片，去掉每页上带价格的商品卡片和外框，保留其余图片和配色；已人工检查，没有残留价格。
+- **手机**只显示产品名和规格（例如 288 g），不显示图片。
+- 16 个产品都放在 `src/config.ts` 的 `CATALOG` 里，比赛用哪几个由下面三行决定，改 ID 即可：
+
+| 用途 | 当前选择（建议，可换） | 价格 |
+|---|---|---|
+| 练习 1 | Probiotic Yogurt | $4.00 |
+| 练习 2 | Garlic Parmesan Sourdough Pull-Aparts | $3.50 |
+| 第 1 轮 | Beef Wellie Bites | $10.00 |
+| 第 2 轮 | Santa's Milk and Cookies Ice Cream | $5.00 |
+| 第 3 轮 | CeraWare 11 in Skillet | $20.00 |
+| 第 4 轮 | Black Label Stracciatella e Speck Pinsa | $9.00 |
+| 第 5 轮 | Classic Belgian Milk Chocolate Truffles | $13.00 |
+| 加赛 | Buttermilk-Brined Young Turkey | $40.00 |
+
+### 需要组织者确认
+
+- **3 个产品当时在打折**，表格用的是折扣价：Beef Chili 与 Tomato Basil Bisque 都是 $7.50（原价 $9.00），TidyStack 是 $20.00（原价 $21.00）。目前的选择避开了这 3 个。
+- **"before tax"**：Skillet、Charcuterie Board、Truffles 在商品卡片上注明 "Plus tax"。规则统一按税前货架价。
+- 第 17、18 张幻灯片（Insiders Report 封面、节日礼篮）不是产品，没有使用。
 
 ## 异常处理
 

@@ -1,4 +1,4 @@
-// Game configuration. Edit this file to change dishes, prices and rules.
+// Game configuration. Edit this file to change the line-up, prices and rules.
 //
 // IMPORTANT: this file is bundled into the Worker (server side) only.
 // True prices never leave the server until the host reveals a round.
@@ -8,11 +8,11 @@
 export interface Dish {
   /** Shown on the big screen (and phones). */
   name: string;
-  /** Optional bullet list (e.g. 3–6 key ingredients). Use [] for none. */
+  /** Optional short facts shown as a list, e.g. the package size. Use [] for none. */
   ingredients: string[];
-  /** Path under public/, e.g. "/dishes/k3f9a.svg". Use an unguessable file name. */
+  /** Path under public/, e.g. "/items/k3f9a.jpg". Use an unguessable file name. */
   image?: string;
-  /** True total price of the ingredients, in cents. $30.75 -> 3075. */
+  /** True price in cents. $30.75 -> 3075. */
   priceCents: number;
 }
 
@@ -53,9 +53,118 @@ export interface GameConfig {
   tiebreaker?: Dish;
 }
 
+// ---------------------------------------------------------------------------
+// All candidate products (from Candidate_Items.pptx + item_list_and_price.xlsx).
+// Images are the slides with the price cards removed.
+// Prices: shelf price "ea", before tax, as in the spreadsheet.
+// ⚠ Three were ON SALE when captured (sale price used): beef-chili, tomato-basil-bisque,
+//   tidystack-containers. The default line-up avoids them.
+// ---------------------------------------------------------------------------
+export const CATALOG = {
+  "beef-wellie-bites": {
+    name: "PC® Beef Wellie Bites",
+    ingredients: ["288 g"],
+    image: "/items/beef-wellie-bites-5d90d5.jpg",
+    priceCents: 1000,
+  },
+  "fish-chips-stacks": {
+    name: "PC® The Chip Shop Fish and Chips Stacks",
+    ingredients: ["270 g"],
+    image: "/items/fish-chips-stacks-e9207c.jpg",
+    priceCents: 1000,
+  },
+  "goat-cheese-pack": {
+    name: "PC® The G.O.A.T. Soft Fresh Goat's Cheeses Variety Pack",
+    ingredients: ["420 g"],
+    image: "/items/goat-cheese-pack-2c7f68.jpg",
+    priceCents: 1200,
+  },
+  "buttermilk-turkey": {
+    name: "PC® Buttermilk-Brined Young Turkey",
+    ingredients: ["Whole turkey, 5–7 kg"],
+    image: "/items/buttermilk-turkey-0919ec.jpg",
+    priceCents: 4000,
+  },
+  "cottage-roast": {
+    name: "PC® The Great Canadian Cottage Roast",
+    ingredients: ["1 kg"],
+    image: "/items/cottage-roast-0cf335.jpg",
+    priceCents: 1400,
+  },
+  "butter-tart-pie": {
+    name: "PC® Our Ultimate Butter-Tart Pie with Canadian Cranberries",
+    ingredients: ["497 g"],
+    image: "/items/butter-tart-pie-f6034e.jpg",
+    priceCents: 1000,
+  },
+  "milk-chocolate-truffles": {
+    name: "PC® Classic Belgian Milk Chocolate Covered Truffles",
+    ingredients: ["600 g"],
+    image: "/items/milk-chocolate-truffles-ec0298.jpg",
+    priceCents: 1300,
+  },
+  "santas-ice-cream": {
+    name: "PC® Scoop Shop Santa's Milk and Cookies Ice Cream",
+    ingredients: ["946 ml"],
+    image: "/items/santas-ice-cream-c11b47.jpg",
+    priceCents: 500,
+  },
+  "garlic-pull-aparts": {
+    name: "PC® Garlic Parmesan Sourdough Pull-Aparts",
+    ingredients: ["355 g"],
+    image: "/items/garlic-pull-aparts-d849a6.jpg",
+    priceCents: 350,
+  },
+  "beef-chili": {
+    name: "PC® Slow Simmered Beef Chili",
+    ingredients: ["700 g"],
+    image: "/items/beef-chili-09d756.jpg",
+    priceCents: 750, // sale price (regular $9.00)
+  },
+  "tomato-basil-bisque": {
+    name: "PC® Slow Simmered Tomato Basil Bisque Soup",
+    ingredients: ["700 ml"],
+    image: "/items/tomato-basil-bisque-cba14f.jpg",
+    priceCents: 750, // sale price (regular $9.00)
+  },
+  "charcuterie-board": {
+    name: "PC® Oversized Acacia Charcuterie Board",
+    ingredients: ["1 board"],
+    image: "/items/charcuterie-board-6c05af.jpg",
+    priceCents: 4000,
+  },
+  "black-label-pinsa": {
+    name: "PC® Black Label Stracciatella e Speck Pinsa",
+    ingredients: ["325 g"],
+    image: "/items/black-label-pinsa-3ece3c.jpg",
+    priceCents: 900,
+  },
+  "ceraware-skillet": {
+    name: "PC® CeraWare Ceramic Non-Stick Cast Aluminum Skillet",
+    ingredients: ["11 in"],
+    image: "/items/ceraware-skillet-d85a15.jpg",
+    priceCents: 2000,
+  },
+  "tidystack-containers": {
+    name: "PC® TidyStack Glass Containers",
+    ingredients: ["3 pack"],
+    image: "/items/tidystack-containers-a72402.jpg",
+    priceCents: 2000, // sale price (regular $21.00)
+  },
+  "probiotic-yogurt": {
+    name: "PC® Lactose Free Strawberry and Blueberry Probiotic Yogurt",
+    ingredients: ["8 × 100 g"],
+    image: "/items/probiotic-yogurt-197ce7.jpg",
+    priceCents: 400,
+  },
+} satisfies Record<string, Dish>;
+
+export type ItemId = keyof typeof CATALOG;
+const pick = (...ids: ItemId[]): Dish[] => ids.map((id) => CATALOG[id]);
+
 export const GAME_CONFIG: GameConfig = {
-  title: "Guess the Ingredients Price",
-  guessPrompt: "Guess the total price of the ingredients listed.",
+  title: "Guess the Price",
+  guessPrompt: "Guess the shelf price of this item (before tax).",
   tables: 15,
   roundSeconds: 15,
   submitGraceMs: 750,
@@ -65,57 +174,11 @@ export const GAME_CONFIG: GameConfig = {
     phoneShowsImage: false,
     revealAllBids: true,
   },
-  // Placeholder items for development. Replace with the real ones before the event.
-  practice: [
-    {
-      name: "Practice 1: Coffee Run",
-      ingredients: ["Ground coffee (340 g)", "Milk (2 L)", "Sugar (2 kg)"],
-      image: "/dishes/demo-practice1-v6t9.svg",
-      priceCents: 2147,
-    },
-    {
-      name: "Practice 2: Pizza Night",
-      ingredients: ["Frozen pizza", "Pop (2 L)", "Caesar salad kit"],
-      image: "/dishes/demo-practice2-c1w5.svg",
-      priceCents: 1696,
-    },
-  ],
-  dishes: [
-    {
-      name: "Appetizer: Caprese Salad",
-      ingredients: ["Fresh mozzarella (250 g)", "Tomatoes (4)", "Fresh basil", "Balsamic glaze"],
-      image: "/dishes/demo-appetizer-7f3k.svg",
-      priceCents: 1875,
-    },
-    {
-      name: "Main 1: Beef Stir-Fry",
-      ingredients: ["Flank steak (500 g)", "Broccoli", "Red bell pepper", "Oyster sauce", "Jasmine rice (1 kg)"],
-      image: "/dishes/demo-main1-q9w2.svg",
-      priceCents: 3075,
-    },
-    {
-      name: "Main 2: Salmon & Asparagus",
-      ingredients: ["Salmon fillets (2)", "Asparagus (1 bunch)", "Lemon", "Butter (454 g)"],
-      image: "/dishes/demo-main2-m4x8.svg",
-      priceCents: 2649,
-    },
-    {
-      name: "Dessert 1: Strawberry Shortcake",
-      ingredients: ["Strawberries (1 lb)", "Whipping cream (473 ml)", "Sponge cake", "Icing sugar"],
-      image: "/dishes/demo-dessert1-p2z6.svg",
-      priceCents: 1597,
-    },
-    {
-      name: "Dessert 2: Chocolate Fondue",
-      ingredients: ["Dark chocolate (200 g)", "Bananas", "Marshmallows", "Pound cake", "Heavy cream"],
-      image: "/dishes/demo-dessert2-r8n1.svg",
-      priceCents: 2233,
-    },
-  ],
-  tiebreaker: {
-    name: "Tiebreaker: Breakfast Basket",
-    ingredients: ["Eggs (dozen)", "Bacon (375 g)", "Sourdough loaf", "Orange juice (1.75 L)", "Maple syrup (250 ml)"],
-    image: "/dishes/demo-tiebreak-h5c3.svg",
-    priceCents: 3418,
-  },
+  // ---- Line-up: change the IDs to swap products (the editor autocompletes them). ----
+  // Practice: cheap, simple items so everyone learns the flow. Doesn't count.
+  practice: pick("probiotic-yogurt", "garlic-pull-aparts"),
+  // Real rounds: as many rounds as items listed here.
+  dishes: pick("beef-wellie-bites", "santas-ice-cream", "ceraware-skillet", "black-label-pinsa", "milk-chocolate-truffles"),
+  // Only used if tables are tied for first.
+  tiebreaker: CATALOG["buttermilk-turkey"],
 };

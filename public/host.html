@@ -74,11 +74,17 @@
       document.getElementById("controls").classList.remove("hidden");
       conn = connect({
         params: { role: "host", key },
-        onState: (v) => { view = v; render(); },
+        onState: (v) => { view = v; preload(v.preloadImages); render(); },
         onError: (e) => flash(e.message),
         onStatus: (s) => (document.getElementById("dot").className = `status-dot ${s}`),
       });
       setInterval(tick, 200);
+    }
+
+    // Load every item image up front so a slow venue network can't delay the reveal of a product.
+    const preloaded = new Set();
+    function preload(urls = []) {
+      for (const u of urls) if (!preloaded.has(u)) { preloaded.add(u); new Image().src = u; }
     }
 
     function flash(text) {
