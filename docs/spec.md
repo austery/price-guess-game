@@ -51,7 +51,7 @@
 
 1. **扫码页**：二维码和网址，以及各桌加入情况。
 2. **欢迎页**：PC Insiders Report Holiday 封面扇形展开，标题 "Guess the Price! Holiday Edition"。
-3. **规则页**：白底文字列表，照抄组织者给的 5 条英文规则，再加第 6 条：每题 45 秒，输错了可以在时间内重新输，以最后一次为准。手机上显示同样的 6 条。
+3. **规则页**：白底文字列表，照抄组织者给的 5 条英文规则，再加第 6 条（黄色横幅、粗体）："You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out." 每条规则一行，带金色编号和图标，关键词用金色。手机上显示同样的 6 条。
 4. 再按空格开始练习第 1 轮。
 
 开场时，手机上显示欢迎语和同样的 6 条规则。界面统一用 Holiday Insiders Report 风格：白字、金色价格、青柠绿标出赢家。

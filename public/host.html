@@ -300,23 +300,24 @@
         </div>`;
     }
 
-    // The organisers' rule text, word for word, plus the re-entry rule.
-    function rulesList(rounds, seconds) {
-      return [
-        `There will be ${rounds} shopping baskets displayed.`,
-        "Each basket is on an individual slide along with 3-6 items used to make that basket.",
-        "Your table will guess the price of all the items for that basket summed together.",
-        "The table that is closest to the total without going over wins that round!",
-        "The table with the most correct guesses wins a prize!",
-        `You have ${seconds} seconds per basket. Typed it wrong? Enter a new price before time runs out — your last entry counts.`,
-      ];
-    }
-
+    // The organisers' rule text, word for word (gold = key words), plus the re-entry rule as a banner.
     function renderRules() {
+      const g = (t) => `<b>${t}</b>`;
+      const rules = [
+        ["🧺", `There will be ${g(`${view.totalRounds} shopping baskets`)} displayed.`],
+        ["🛒", `Each basket is on an individual slide along with ${g("3-6 items")} used to make that basket.`],
+        ["➕", `Your table will guess the price of all the items for that basket ${g("summed together")}.`],
+        ["🎯", `The table that is closest to the total ${g("without going over")} wins that round!`],
+        ["🏆", `The table with the most correct guesses ${g("wins a prize!")}`],
+      ];
       main.innerHTML = `
-        <div class="rules plain">
-          <h1>Rules</h1>
-          <ol>${rulesList(view.totalRounds, view.roundSeconds).map((r) => `<li>${esc(r)}</li>`).join("")}</ol>
+        <div class="rules fancy">
+          <h1>The <span class="script">Rules</span></h1>
+          <ol>${rules.map(([icon, text], i) => `
+            <li><span class="r-num">${i + 1}</span><span class="r-icon">${icon}</span><span class="r-text">${text}</span></li>`).join("")}
+          </ol>
+          <div class="r-banner"><span class="r-icon">⏱️</span>
+            <span>You have ${view.roundSeconds} seconds per basket. If you type it wrong, enter a new price before time runs out.</span></div>
         </div>`;
     }
 
