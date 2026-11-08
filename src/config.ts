@@ -256,14 +256,13 @@ export const GAME_CONFIG: GameConfig = {
       ["gochujang-caramel-popcorn", 1],
       ["pepperoni-pizza-chips", 1],
     ]), // $41.00
-    basket("Kitchen & Home Basket", [
-      ["charcuterie-board", 1],
-      ["bring-a-board", 1],
-      ["honeycomb-clad-roaster", 1],
-      ["ceraware-skillet", 1],
-      ["tidystack-containers", 1],
-      ["ultimate-cookie-sheet", 1],
-    ]), // $165.00
+    basket("Holiday Sweets Basket", [
+      ["butter-tart-pie", 1],
+      ["eggnog-ice-cream", 1],
+      ["tiramisu-ice-cream-bars", 1],
+      ["santas-ice-cream", 1],
+      ["ajwa-whole-dates", 1],
+    ]), // $34.50
   ],
   // Real rounds: as many rounds as baskets listed here.
   dishes: [
@@ -308,13 +307,12 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
-    basket("Holiday Sweets Basket", [
-      ["butter-tart-pie", 1],
-      ["eggnog-ice-cream", 1],
-      ["tiramisu-ice-cream-bars", 1],
-      ["santas-ice-cream", 1],
-      ["ajwa-whole-dates", 1],
-    ]), // $34.50
+    basket("Kitchen & Home Basket", [
+      ["charcuterie-board", 1],
+      ["honeycomb-clad-roaster", 1],
+      ["ceraware-skillet", 1],
+      ["tidystack-containers", 1],
+    ]), // $130.00
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
