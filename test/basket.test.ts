@@ -19,6 +19,7 @@ describe("gift baskets", () => {
     expect(b.priceCents).toBe(2 * CATALOG["tomato-basil-bisque"].priceCents + 3 * CATALOG["garlic-pull-aparts"].priceCents);
     expect(b.ingredients[0]).toBe("2 × PC® Slow Simmered Tomato Basil Bisque Soup (700 ml)");
     expect(b.parts![1]).toMatchObject({ qty: 3, image: CATALOG["garlic-pull-aparts"].pack });
+    expect(basket("One each", [["beef-chili", 1]]).ingredients[0]).toBe(`${CATALOG["beef-chili"].name} (700 g)`);
   });
 
   it("shows parts and quantities while guessing, but no unit price until reveal", () => {

@@ -192,7 +192,7 @@
           </div>
           ${view.breakdown ? `<div class="card"><div class="muted" style="margin-bottom:6px">How it adds up</div>
             <table class="calc">${view.breakdown.map((b) => `
-              <tr><td>${b.qty} × ${esc(b.name.replace(/^PC® /, ""))}</td><td class="price">${b.qty} × ${formatCents(b.unitCents)}</td>
+              <tr><td>${b.qty > 1 ? `${b.qty} × ` : ""}${esc(b.name.replace(/^PC® /, ""))}</td><td class="price">${b.qty > 1 ? `${b.qty} × ${formatCents(b.unitCents)}` : ""}</td>
                 <td class="price">${formatCents(b.subtotalCents)}</td></tr>`).join("")}
               <tr class="total"><td colspan="2">Total</td><td class="price">${formatCents(r.priceCents)}</td></tr>
             </table></div>` : ""}

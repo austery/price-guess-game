@@ -40,6 +40,15 @@ describe("game config", () => {
     }
   });
 
+  it("every basket has 3-6 different items, one of each (the rules promise this)", () => {
+    for (const d of all) {
+      expect(d.parts?.length, d.name).toBeGreaterThanOrEqual(3);
+      expect(d.parts!.length, d.name).toBeLessThanOrEqual(6);
+      expect(d.parts!.every((p) => p.qty === 1), d.name).toBe(true);
+      expect(new Set(d.parts!.map((p) => p.name)).size, d.name).toBe(d.parts!.length);
+    }
+  });
+
   it("host preloads every image; phones never get the preload list", () => {
     const s = initialState(GAME_CONFIG);
     const expected = [...new Set(all.flatMap((d) => [...d.images, ...(d.parts ?? []).map((p) => p.image)]))];

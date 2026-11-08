@@ -206,7 +206,7 @@ export function basket(
   });
   return {
     name,
-    ingredients: parts.map((p) => `${p.qty} × ${p.name}${p.size ? ` (${p.size})` : ""}`),
+    ingredients: parts.map((p) => `${p.qty > 1 ? `${p.qty} × ` : ""}${p.name}${p.size ? ` (${p.size})` : ""}`),
     images: opts.hero ? [opts.hero] : [],
     priceCents: parts.reduce((sum, p) => sum + p.qty * p.unitCents, 0),
     parts,
@@ -246,66 +246,75 @@ export const GAME_CONFIG: GameConfig = {
   // ---- Line-up. Every product comes from the PC Insiders Report Holiday 2026 (prices as printed there).
   // Change items/quantities freely; basket totals are added up automatically.
   // Practice (doesn't count): two baskets so everyone learns how it works.
+  // One of each item: tables guess each product's price, no multiplying (time is short).
   practice: [
     basket("Holiday Party Snacks", [
       ["beef-wellie-bites", 1],
       ["fish-chips-stacks", 1],
       ["bombas", 1],
       ["shrimp-chips", 1],
-      ["gochujang-caramel-popcorn", 2],
-    ]), // $42.00
-    basket("Holiday Feast Box", [
-      ["buttermilk-turkey", 1],
-      ["sous-chef-butter-thyme-baby-potatoes", 1],
-      ["sous-chef-miso-glazed-carrots", 1],
-      ["all-butter-croissants", 2],
-    ]), // $62.00
+      ["gochujang-caramel-popcorn", 1],
+      ["pepperoni-pizza-chips", 1],
+    ]), // $41.00
+    basket("Kitchen & Home Basket", [
+      ["charcuterie-board", 1],
+      ["bring-a-board", 1],
+      ["honeycomb-clad-roaster", 1],
+      ["ceraware-skillet", 1],
+      ["tidystack-containers", 1],
+      ["ultimate-cookie-sheet", 1],
+    ]), // $165.00
   ],
   // Real rounds: as many rounds as baskets listed here.
   dishes: [
     basket("Soup Night Basket", [
       ["lobster-bisque", 1],
-      ["tomato-basil-bisque", 2],
-      ["sourdough-crisps-sea-salt", 2],
-      ["sourdough-focaccia-parmesan-and-caramelized-onion", 1],
-    ]), // $33.50
+      ["tomato-basil-bisque", 1],
+      ["thai-chicken", 1],
+      ["beef-chili", 1],
+      ["loaded-baked-potato", 1],
+      ["sourdough-crisps-sea-salt", 1],
+    ]), // $40.50
     basket("Pampered Pets Basket", [
       ["dog-food-digestive", 1],
       ["dog-food-skin-coat", 1],
       ["dog-food-mobility", 1],
-      ["cat-food", 2],
-    ]), // $118.00
+      ["cat-food", 1],
+    ]), // $104.00
     basket("Cheese Board", [
       ["goat-cheese-pack", 1],
-      ["amarena-goat-cheese", 2],
+      ["amarena-goat-cheese", 1],
       ["white-fox", 1],
       ["isle-of-man", 1],
       ["lactose-free-mozzarella", 1],
+      ["lactose-free-cheese-stick", 1],
     ]), // $46.50
     basket("Bakery Basket", [
       ["sourdough-focaccia-rosemary-sea-salt", 1],
       ["sourdough-focaccia-green-olive", 1],
-      ["sourdough-baguette", 2],
+      ["sourdough-baguette", 1],
       ["garlic-pull-aparts", 1],
-      ["all-butter-croissants", 2],
-    ]), // $32.50
+      ["all-butter-croissants", 1],
+      ["protein-muffins-banana-chocolate-chip", 1],
+    ]), // $29.00
     basket("Chocolate Lover's Basket", [
       ["milk-chocolate-truffles", 1],
-      ["rice-cakes-milk-chocolate-caramel", 2],
+      ["rice-cakes-milk-chocolate-caramel", 1],
       ["rice-cakes-dark-chocolate-raspberry", 1],
-      ["choc-almonds-milk-chocolate", 2],
-      ["choc-almonds-dark-chocolate", 2],
+      ["choc-almonds-milk-chocolate", 1],
+      ["choc-almonds-dark-chocolate", 1],
       ["candy-cane-ice-cream", 1],
-    ]), // $38.50
+    ]), // $31.50
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
     basket("Holiday Sweets Basket", [
       ["butter-tart-pie", 1],
-      ["eggnog-ice-cream", 2],
+      ["eggnog-ice-cream", 1],
       ["tiramisu-ice-cream-bars", 1],
       ["santas-ice-cream", 1],
-    ]), // $29.00
+      ["ajwa-whole-dates", 1],
+    ]), // $34.50
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
@@ -313,10 +322,10 @@ export const GAME_CONFIG: GameConfig = {
       ["toner-pads-cica-chic-soothing", 1],
     ]), // $47.00
     basket("Pasta Night Basket", [
-      ["bolognese-ravioli", 2],
+      ["bolognese-ravioli", 1],
       ["burrata-ravioli", 1],
-      ["solerama-tomatoes", 2],
+      ["solerama-tomatoes", 1],
       ["truffle-ricotta-gnocchi", 1],
-    ]), // $36.00
+    ]), // $24.00
   ],
 };
