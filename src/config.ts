@@ -234,7 +234,7 @@ export const GAME_CONFIG: GameConfig = {
   title: "Guess the Price",
   guessPrompt: "Guess the total shelf price of everything shown (before tax).",
   tables: 15,
-  roundSeconds: 15,
+  roundSeconds: 30, // baskets: time to read, add up and agree
   submitGraceMs: 750,
   rules: {
     roundTie: "all-score",

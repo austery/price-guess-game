@@ -122,7 +122,7 @@ async function main() {
     const spread = Math.max(...players.map((p) => p.viewAt)) - startedAt;
     ok(true, `all 15 phones saw the dish within ${spread} ms`);
     ok(players.every((p) => p.view.dish && p.view.dish.image === undefined), "phones get dish text, no image");
-    ok(players.every((p) => p.view.deadline - p.view.serverNow > 14000), "deadline is ~15 s ahead");
+    ok(players.every((p) => p.view.deadline - p.view.serverNow > p.view.questionSeconds * 1000 - 1000), `deadline is ~${players[0].view.questionSeconds} s ahead`);
 
     // Every table guesses; some include $ or a comma decimal like real people would type.
     for (const [i, p] of players.entries()) {
@@ -151,10 +151,11 @@ async function main() {
     players[8] = back;
 
     if (r === 1) {
-      // Let the real 15-second countdown run out.
-      await host.waitFor((c) => c.view.phase === "locked", 20000, "auto lock");
+      // Let the real countdown run out.
+      const secs = host.view.questionSeconds * 1000;
+      await host.waitFor((c) => c.view.phase === "locked", secs + 5000, "auto lock");
       const lockedAfter = Date.now() - startedAt;
-      ok(lockedAfter >= 15000 && lockedAfter < 17500, `server auto-locked after ${(lockedAfter / 1000).toFixed(2)} s`);
+      ok(lockedAfter >= secs && lockedAfter < secs + 2500, `server auto-locked after ${(lockedAfter / 1000).toFixed(2)} s`);
       players[3].send({ t: "submit", price: "1.00" });
       await players[3].waitFor((c) => c.errors.length > 0, 3000, "late error");
       ok(players[3].errors.at(-1).code === "not_open", "late guess after time's up is rejected");

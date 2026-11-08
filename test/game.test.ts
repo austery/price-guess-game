@@ -78,11 +78,11 @@ describe("a round", () => {
   it("15 second countdown, grace period, then locked", () => {
     const s = withAllTables();
     start(s, cfg, T0);
-    expect(s.deadline).toBe(T0 + 15_000);
-    submit(s, cfg, tok(1), "10", T0 + 15_000 + cfg.submitGraceMs); // inside grace: accepted
-    expect(code(() => submit(s, cfg, tok(2), "10", T0 + 15_000 + cfg.submitGraceMs + 1))).toBe("not_open");
+    expect(s.deadline).toBe(T0 + cfg.roundSeconds * 1000);
+    submit(s, cfg, tok(1), "10", T0 + cfg.roundSeconds * 1000 + cfg.submitGraceMs); // inside grace: accepted
+    expect(code(() => submit(s, cfg, tok(2), "10", T0 + cfg.roundSeconds * 1000 + cfg.submitGraceMs + 1))).toBe("not_open");
     expect(maybeLock(s, cfg, T0 + 14_000)).toBe(false);
-    expect(maybeLock(s, cfg, T0 + 15_000 + cfg.submitGraceMs)).toBe(true);
+    expect(maybeLock(s, cfg, T0 + cfg.roundSeconds * 1000 + cfg.submitGraceMs)).toBe(true);
     expect(s.phase).toBe("locked");
     expect(code(() => submit(s, cfg, tok(3), "10", T0 + 1000))).toBe("not_open");
   });
@@ -179,7 +179,7 @@ describe("full game: 15 tables x 5 rounds", () => {
         const cents = t === r + 1 ? price : t === 15 ? price + 1 : Math.floor(price / 2);
         submit(s, cfg, tok(t), (cents / 100).toFixed(2), now + 1000 + t);
       }
-      now += 20_000;
+      now += cfg.roundSeconds * 1000 + 5_000;
       expect(maybeLock(s, cfg, now)).toBe(true);
       reveal(s, cfg);
       expect(s.results[r].winners).toEqual([r + 1]);
