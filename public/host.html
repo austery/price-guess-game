@@ -300,14 +300,14 @@
         </div>`;
     }
 
-    // The organisers' rules, shortened (rules 1-3 merged into one line), plus the re-entry rule. Gold = key words.
+    // The organisers' rules, shortened (rules 1-3 merged into one line), plus the re-entry rule. Only "without going over" is in gold.
     function rulesText(rounds, seconds) {
       const g = (t) => `<b>${t}</b>`;
       return [
-        `There are ${g(`${rounds} baskets`)}. Guess the ${g("total price")} of all the items in each basket.`,
+        `There are ${rounds} baskets. Guess the total price of all the items in each basket.`,
         `The table that is closest to the total ${g("without going over")} wins that round!`,
-        `The table with the most correct guesses ${g("wins a prize!")}`,
-        `You have ${g(`${seconds} seconds`)} per basket. If you type it wrong, enter a new price before time runs out.`,
+        "The table with the most correct guesses wins a prize!",
+        `You have ${seconds} seconds per basket. If you type it wrong, enter a new price before time runs out.`,
       ];
     }
 
