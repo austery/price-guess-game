@@ -102,17 +102,17 @@
 | 用途 | 篮子 | 内容 | 总价 |
 |---|---|---|---|
 | 练习 1 | Holiday Party Snacks（开胃小吃） | Beef Wellie Bites、Fish & Chips Stacks、Bombas、T&T 虾片、2 × 韩式焦糖爆米花 | $42.00 |
-| 练习 2 | Cheese Board（奶酪） | G.O.A.T. 羊奶酪组合、2 × 樱桃羊奶酪、White Fox、Isle of Man 切达、无乳糖马苏里拉 | $46.50 |
+| 练习 2 | Holiday Feast Box（节日大餐） | 火鸡、黄油百里香小土豆、味噌胡萝卜、2 × 黄油可颂 | $62.00 |
 | 第 1 轮 | Soup Night Basket（汤） | 龙虾汤、2 × 番茄汤、2 × 酸面包脆片、佛卡夏 | $33.50 |
 | 第 2 轮 | Pampered Pets Basket（宠物食品） | 3 种狗粮各 1 袋、2 × 猫粮 | $118.00 |
-| 第 3 轮 | Joe Fresh Winter Wardrobe（服装） | 成人 Fair Isle 毛衣、儿童 Fair Isle 毛衣、抓绒运动裤、人造毛雷锋帽、人造毛耳罩 | $146.00 |
+| 第 3 轮 | Cheese Board（奶酪） | G.O.A.T. 羊奶酪组合、2 × 樱桃羊奶酪、White Fox、Isle of Man 切达、无乳糖马苏里拉 | $46.50 |
 | 第 4 轮 | Bakery Basket（面包） | 迷迭香佛卡夏、橄榄佛卡夏、2 × 酸面包法棍、蒜香手撕包、2 × 黄油可颂 | $32.50 |
 | 第 5 轮 | Chocolate Lover's Basket（巧克力） | 比利时松露巧克力、3 × 巧克力米饼、4 × 巧克力杏仁、拐杖糖巧克力冰淇淋 | $38.50 |
-| 加赛 1 | Holiday Feast Box | 火鸡、黄油百里香小土豆、味噌胡萝卜、2 × 黄油可颂 | $62.00 |
-| 加赛 2 | Holiday Sweets Basket | 黄油挞派、2 × 蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋 | $29.00 |
-| 加赛 3 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
+| 加赛 1 | Holiday Sweets Basket | 黄油挞派、2 × 蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋 | $29.00 |
+| 加赛 2 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
+| 加赛 3 | Pasta Night Basket | 2 × 博洛尼亚肉酱饺、布拉塔饺、2 × Solerama 番茄、松露乳清干酪团子 | $36.00 |
 
-Isle of Man 和 Bombas 杂志上没有单独的包装图，图片是从杂志的拼盘照片里裁出来的。
+Joe Fresh 服装没有做篮子：杂志的服装照片是整套搭配（毛衣配裤子、靴子），和单件商品对不上。Isle of Man 和 Bombas 杂志上没有单独的包装图，图片是从杂志的拼盘照片里裁出来的。
 
 ### 和之前表格不一致的地方
 

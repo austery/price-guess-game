@@ -254,13 +254,12 @@ export const GAME_CONFIG: GameConfig = {
       ["shrimp-chips", 1],
       ["gochujang-caramel-popcorn", 2],
     ]), // $42.00
-    basket("Cheese Board", [
-      ["goat-cheese-pack", 1],
-      ["amarena-goat-cheese", 2],
-      ["white-fox", 1],
-      ["isle-of-man", 1],
-      ["lactose-free-mozzarella", 1],
-    ]), // $46.50
+    basket("Holiday Feast Box", [
+      ["buttermilk-turkey", 1],
+      ["sous-chef-butter-thyme-baby-potatoes", 1],
+      ["sous-chef-miso-glazed-carrots", 1],
+      ["all-butter-croissants", 2],
+    ]), // $62.00
   ],
   // Real rounds: as many rounds as baskets listed here.
   dishes: [
@@ -276,13 +275,13 @@ export const GAME_CONFIG: GameConfig = {
       ["dog-food-mobility", 1],
       ["cat-food", 2],
     ]), // $118.00
-    basket("Joe Fresh Winter Wardrobe", [
-      ["fair-isle-sweater", 1],
-      ["kids-fair-isle-sweater", 1],
-      ["fleece-jogger", 1],
-      ["faux-fur-trapper-hat", 1],
-      ["faux-fur-earmuffs", 1],
-    ]), // $146.00
+    basket("Cheese Board", [
+      ["goat-cheese-pack", 1],
+      ["amarena-goat-cheese", 2],
+      ["white-fox", 1],
+      ["isle-of-man", 1],
+      ["lactose-free-mozzarella", 1],
+    ]), // $46.50
     basket("Bakery Basket", [
       ["sourdough-focaccia-rosemary-sea-salt", 1],
       ["sourdough-focaccia-green-olive", 1],
@@ -301,12 +300,6 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
-    basket("Holiday Feast Box", [
-      ["buttermilk-turkey", 1],
-      ["sous-chef-butter-thyme-baby-potatoes", 1],
-      ["sous-chef-miso-glazed-carrots", 1],
-      ["all-butter-croissants", 2],
-    ]), // $62.00
     basket("Holiday Sweets Basket", [
       ["butter-tart-pie", 1],
       ["eggnog-ice-cream", 2],
@@ -319,5 +312,11 @@ export const GAME_CONFIG: GameConfig = {
       ["acne-patches", 1],
       ["toner-pads-cica-chic-soothing", 1],
     ]), // $47.00
+    basket("Pasta Night Basket", [
+      ["bolognese-ravioli", 2],
+      ["burrata-ravioli", 1],
+      ["solerama-tomatoes", 2],
+      ["truffle-ricotta-gnocchi", 1],
+    ]), // $36.00
   ],
 };
