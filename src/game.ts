@@ -16,7 +16,7 @@
 // (round index = dishes.length) that only the tied tables answer:
 //   final --startTiebreak--> waiting --start--> open --> locked --reveal--> revealed --next--> final
 
-import type { GameConfig } from "./config";
+import type { Dish, GameConfig } from "./config";
 import {
   computeStandings,
   leaders,
@@ -176,7 +176,7 @@ export function start(s: GameState, cfg: GameConfig, now: number) {
   else if (isTiebreakRound(s, cfg)) s.tiebreakResult = null;
   else delete s.results[s.round];
   s.phase = "open";
-  s.deadline = now + cfg.roundSeconds * 1000;
+  s.deadline = now + (currentDish(s, cfg)?.seconds ?? cfg.roundSeconds) * 1000;
   s.introStep = 3;
   bump(s);
 }
@@ -302,6 +302,18 @@ export interface DishView {
   name: string;
   ingredients: string[];
   images: string[];
+  /** Basket contents without prices (prices arrive in `breakdown` on reveal). */
+  parts?: { name: string; size: string; image: string; qty: number }[];
+}
+
+/** Basket reveal: each line with its price. */
+export interface BreakdownLine {
+  name: string;
+  size: string;
+  image: string;
+  qty: number;
+  unitCents: number;
+  subtotalCents: number;
 }
 
 export interface Champion {
@@ -342,6 +354,10 @@ export interface CommonView {
   claimedTables: number[];
   submittedTables: number[];
   dish: DishView | null;
+  /** Seconds on the clock for the current question. */
+  questionSeconds: number;
+  /** Basket questions, once revealed: how the price adds up. */
+  breakdown: BreakdownLine[] | null;
   result: RoundResult | TiebreakResult | null;
   standings: Standing[];
   leaders: number[];
@@ -366,6 +382,13 @@ export interface PlayerView extends CommonView {
 
 function dishVisible(s: GameState) {
   return s.phase === "open" || s.phase === "locked" || s.phase === "revealed";
+}
+
+function dishView(d: Dish): DishView {
+  const v: DishView = { name: d.name, ingredients: d.ingredients, images: d.images };
+  // Never copy a part object whole: it carries the unit price.
+  if (d.parts) v.parts = d.parts.map((p) => ({ name: p.name, size: p.size, image: p.image, qty: p.qty }));
+  return v;
 }
 
 function common(s: GameState, cfg: GameConfig, now: number): CommonView {
@@ -401,7 +424,12 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     tables: cfg.tables,
     claimedTables: Object.keys(s.claims).map(Number).sort((a, b) => a - b),
     submittedTables: Object.keys(s.bids[roundKey(s)] ?? {}).map(Number).sort((a, b) => a - b),
-    dish: dish && dishVisible(s) ? { name: dish.name, ingredients: dish.ingredients, images: dish.images } : null,
+    dish: dish && dishVisible(s) ? dishView(dish) : null,
+    questionSeconds: dish?.seconds ?? cfg.roundSeconds,
+    breakdown:
+      dish?.parts && s.phase === "revealed"
+        ? dish.parts.map((p) => ({ ...p, subtotalCents: p.qty * p.unitCents }))
+        : null,
     // The true price only leaves the server inside a revealed result.
     result:
       s.phase !== "revealed"
@@ -420,7 +448,10 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
   return {
     ...common(s, cfg, now),
     role: "host",
-    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) => d.images),
+    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) => [
+      ...d.images,
+      ...(d.parts ?? []).map((p) => p.image),
+    ]).filter((u, i, all) => all.indexOf(u) === i),
     connectedTables: [...connectedTables].sort((a, b) => a - b),
     bidCount: Object.keys(s.bids[roundKey(s)] ?? {}).length,
   };
@@ -429,7 +460,11 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
 export function playerView(s: GameState, cfg: GameConfig, token: string, now: number): PlayerView {
   const view = common(s, cfg, now);
   const myTable = tableOf(s, token);
-  if (view.dish && !cfg.rules.phoneShowsImage) view.dish = { ...view.dish, images: [] };
+  if (view.dish && !cfg.rules.phoneShowsImage) {
+    view.dish = { ...view.dish, images: [] };
+    if (view.dish.parts) view.dish.parts = view.dish.parts.map((p) => ({ ...p, image: "" }));
+  }
+  if (view.breakdown && !cfg.rules.phoneShowsImage) view.breakdown = view.breakdown.map((b) => ({ ...b, image: "" }));
   if (view.result && !cfg.rules.revealAllBids) {
     view.result = {
       ...view.result,

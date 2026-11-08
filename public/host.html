@@ -173,18 +173,31 @@
           case "waiting": return { label: `▶ Start practice ${view.practiceNumber}`, t: "start" };
           case "open": return { label: "⏳ Practice in progress…", t: null };
           case "locked": return { label: "🎉 Reveal price", t: "reveal" };
-          case "revealed": return { label: lastPractice ? "✅ End practice" : "➡ Next practice round", t: "next" };
+          case "revealed":
+            if (view.breakdown && !bidsShown()) return { label: "📋 Show all guesses", local: true };
+            return { label: lastPractice ? "✅ End practice" : "➡ Next practice round", t: "next" };
         }
       }
       switch (view.phase) {
         case "waiting": return { label: view.isTiebreak ? "▶ Start tiebreaker" : `▶ Start round ${view.roundNumber}`, t: "start" };
         case "open": return { label: "⏳ Round in progress…", t: null };
         case "locked": return { label: "🎉 Reveal price", t: "reveal" };
-        case "revealed": return { label: last || view.isTiebreak ? "🏆 Final results" : "➡ Scoreboard / next round", t: "next" };
+        case "revealed":
+          if (view.breakdown && !bidsShown()) return { label: "📋 Show all guesses", local: true };
+          return { label: last || view.isTiebreak ? "🏆 Final results" : "➡ Scoreboard / next round", t: "next" };
         default: return view.canStartTiebreak ? { label: "⚔ Tiebreaker", t: "startTiebreak" } : { label: "Game over", t: null };
       }
     }
-    primary.onclick = () => { sound.unlock(); const a = primaryAction(); if (a?.t) conn.send({ t: a.t }); };
+    primary.onclick = () => {
+      sound.unlock();
+      const a = primaryAction();
+      if (a?.local) { shownBids.add(questionKey()); lastKey = ""; render(); }
+      else if (a?.t) conn.send({ t: a.t });
+    };
+    // Basket reveals have two pages: "how the price adds up", then every table's guess (host-only, local).
+    const shownBids = new Set();
+    const questionKey = () => `${view.isPractice}|${view.practiceNumber}|${view.isTiebreak}|${view.roundNumber}`;
+    const bidsShown = () => shownBids.has(questionKey());
     const muteBtn = document.getElementById("muteBtn");
     const showMute = () => (muteBtn.textContent = sound.muted ? "🔇 Music off" : "🔊 Music on");
     muteBtn.onclick = () => { sound.unlock(); sound.setMuted(!sound.muted); showMute(); };
@@ -217,9 +230,10 @@
     function render() {
       if (!view) return;
       setBackground(backgroundFor(view));
+      if (view.phase !== "revealed") shownBids.clear();
       const a = primaryAction();
       primary.textContent = a.label;
-      primary.disabled = !a.t;
+      primary.disabled = !a.t && !a.local;
       lockBtn.classList.toggle("hidden", view.phase !== "open");
       document.getElementById("skipBtn").classList.toggle("hidden",
         !(view.isPractice && view.introStep >= 3 && (view.phase === "waiting" || view.phase === "revealed")));
@@ -234,7 +248,7 @@
       document.getElementById("topRight").textContent =
         `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
 
-      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
+      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}|${view.breakdown ? bidsShown() : ""}`;
       if (k === lastKey) return;
       lastKey = k;
       if (view.phase === "waiting") {
@@ -342,6 +356,7 @@
 
     function renderDish() {
       const d = view.dish;
+      if (d.parts) return renderBasketQuestion();
       main.innerHTML = `
         <div class="dish">
           ${collage(d.images)}
@@ -357,6 +372,115 @@
       tick();
     }
 
+    // ---------- gift baskets ----------
+    const shortName = (n) => n.replace(/^PC® /, "");
+    const uniqueParts = (parts) => parts.filter((p, i) => parts.findIndex((q) => q.image === p.image) === i);
+
+    /** The whole basket: a photo if one was given, else the items piled into a drawn wicker basket. */
+    function basketArt(d) {
+      if (d.images[0]) return `<div class="basket-photo"><img src="${esc(d.images[0])}" alt="" /></div>`;
+      const items = uniqueParts(d.parts);
+      const n = items.length;
+      const pile = items.map((p, i) => {
+        const x = n === 1 ? 50 : 16 + (i * 68) / (n - 1);
+        const mid = (n - 1) / 2;
+        const rot = n === 1 ? 0 : ((i - mid) / Math.max(mid, 1)) * 11;
+        const lift = 8 - Math.abs(i - mid) * (14 / Math.max(n, 2)) + (i % 2 ? 6 : 0);
+        return `<div class="b-item" style="left:${x}%;bottom:${28 + lift}%;transform:translateX(-50%) rotate(${rot.toFixed(1)}deg);z-index:${i % 2 ? 2 : 1}">
+          <img src="${esc(p.image)}" alt="" /></div>`;
+      }).join("");
+      return `<div class="basket-art">
+        <svg class="b-handle" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M70 215 C 70 10, 330 10, 330 215" fill="none" stroke="#6d3f17" stroke-width="22" stroke-linecap="round"/>
+          <path d="M70 215 C 70 10, 330 10, 330 215" fill="none" stroke="#b57a3c" stroke-width="12" stroke-dasharray="14 8" stroke-linecap="round"/>
+        </svg>
+        ${pile}
+        <svg class="b-front" viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <pattern id="weave" width="28" height="22" patternUnits="userSpaceOnUse">
+              <rect width="28" height="22" fill="#a8692f"/>
+              <rect x="1" y="2" width="12" height="7" rx="3.5" fill="#cf9150"/>
+              <rect x="15" y="13" width="12" height="7" rx="3.5" fill="#cf9150"/>
+              <rect x="15" y="2" width="12" height="7" rx="3.5" fill="#b9783a"/>
+              <rect x="1" y="13" width="12" height="7" rx="3.5" fill="#b9783a"/>
+            </pattern>
+            <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/>
+            </linearGradient>
+          </defs>
+          <path d="M18 26 L382 26 L350 166 L50 166 Z" fill="url(#weave)"/>
+          <path d="M18 26 L382 26 L350 166 L50 166 Z" fill="url(#shade)"/>
+          <rect x="6" y="6" width="388" height="28" rx="14" fill="#7a461b"/>
+          <rect x="6" y="6" width="388" height="28" rx="14" fill="none" stroke="#d29a5a" stroke-width="5" stroke-dasharray="16 10"/>
+          <path d="M150 34 L250 34 L245 166 L155 166 Z" fill="#c8102e" opacity=".92"/>
+          <path d="M200 20 C 150 -14, 120 34, 196 30 Z M204 20 C 250 -14, 280 34, 204 30 Z" fill="#e0263f" stroke="#8c0a1f" stroke-width="3"/>
+          <circle cx="200" cy="24" r="10" fill="#b30d27"/>
+        </svg>
+      </div>`;
+    }
+
+    function partCard(p, priced) {
+      return `<div class="part">
+        <div class="p-img"><img src="${esc(p.image)}" alt="" />
+          <span class="p-qty">×${p.qty}</span>
+          ${priced ? `<span class="p-tag">${formatCents(p.unitCents)}<small>each</small></span>` : ""}
+        </div>
+        <div class="p-name">${esc(shortName(p.name))}</div>
+        ${p.size ? `<div class="p-size">${esc(p.size)}</div>` : ""}
+      </div>`;
+    }
+
+    function renderBasketQuestion() {
+      const d = view.dish;
+      main.innerHTML = `
+        <div class="basket-q">
+          <div class="bq-top">
+            <div class="bq-art">${basketArt(d)}</div>
+            <div class="bq-side">
+              <h1>${esc(d.name)}</h1>
+              <div class="bq-ask">What does <strong>everything below</strong> cost in total?</div>
+              <div class="countdown" id="cd"></div>
+              <div class="cd-label" id="cdLabel">seconds left</div>
+              <div class="sub" id="subCount"></div>
+              ${chips(true, true)}
+            </div>
+          </div>
+          <div class="parts n${d.parts.length}">${d.parts.map((p) => partCard(p, false)).join("")}</div>
+        </div>`;
+      tick();
+    }
+
+    function renderBasketReveal() {
+      const r = view.result;
+      const b = view.breakdown;
+      const headline = view.isTiebreak
+        ? `🏆 Table ${r.winners[0]} wins the tiebreaker!`
+        : r.winners.length
+          ? `🏆 Table ${r.winners.join(" & ")} ${view.isPractice ? "would have won!" : "wins this round!"}`
+          : "Everyone went over — no winner.";
+      const rows = b.map((x, i) => `<tr><th>${i + 2}</th><td>${esc(shortName(x.name))}</td><td class="n">${x.qty}</td>
+        <td class="n">${formatCents(x.unitCents)}</td><td class="n">${formatCents(x.subtotalCents)}</td></tr>`).join("");
+      main.innerHTML = `
+        <div class="basket-r">
+          <div class="br-head">
+            <div><div class="br-name">${esc(view.dish.name)}</div><div class="winner">${headline}</div></div>
+            <div class="br-total">Total <span class="price">${formatCents(r.priceCents)}</span></div>
+          </div>
+          <div class="br-body">
+            <div class="parts priced n${b.length}">${b.map((p) => partCard(p, true)).join("")}</div>
+            <div class="xl">
+              <div class="xl-bar"><span class="xl-logo">X</span> basket-math.xlsx</div>
+              <table>
+                <tr class="cols"><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+                <tr class="hdr"><th>1</th><td>Item</td><td class="n">Qty</td><td class="n">Price</td><td class="n">Subtotal</td></tr>
+                ${rows}
+                <tr class="total"><th>${b.length + 2}</th><td colspan="3">TOTAL</td><td class="n">${formatCents(r.priceCents)}</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>`;
+    }
+
     function tiebreakHow(r) {
       if (r.decidedBy === "under") return "Closest without going over.";
       if (r.decidedBy === "closest") return "Everyone went over — the closest guess wins.";
@@ -370,13 +494,14 @@
         <div class="standings">
           <h1>⚔ Tiebreaker!</h1>
           <p style="font-size:2.4vw">Tables <strong>${view.tiebreakTables.join(", ")}</strong> are tied for first place.</p>
-          <p class="muted" style="font-size:1.8vw">One more question — only these tables answer. ${view.roundSeconds} seconds, closest without going over wins.
+          <p class="muted" style="font-size:1.8vw">One more question — only these tables answer. ${view.questionSeconds} seconds, closest without going over wins.
             If everyone goes over, the closest guess wins; if still tied, we draw lots.</p>
           ${chips(false, true)}
         </div>`;
     }
 
     function renderReveal() {
+      if (view.breakdown && !bidsShown()) return renderBasketReveal();
       const r = view.result;
       const practiceNote = `<div class="muted" style="font-size:1.6vw;font-weight:400">Practice — doesn't count.</div>`;
       const headline = view.isTiebreak
@@ -387,6 +512,7 @@
       main.innerHTML = `
         <div class="reveal">
           <div>
+            ${view.dish?.parts && !view.dish.images[0] ? `<div class="thumb basket-thumb">${basketArt(view.dish)}</div>` : ""}
             ${view.dish?.images?.[0] ? `<div class="thumb"><img src="${esc(view.dish.images[0])}" alt="" /></div>` : ""}
             <div class="truth">${esc(view.dish?.name ?? "")}<span class="price">${formatCents(r.priceCents)}</span></div>
             <div class="winner">${headline}</div>

@@ -15,8 +15,26 @@ export interface Dish {
    * The first is shown big (usually the package); a second one is overlapped beside it.
    */
   images: string[];
-  /** True price in cents. $30.75 -> 3075. */
+  /** Package-only photo used when this item is inside a basket (default: images[0]). */
+  pack?: string;
+  /** True price in cents. $30.75 -> 3075. For a basket this is the sum of its parts. */
   priceCents: number;
+  /** Basket questions only: what's inside. Shown with photos + quantities; prices only on reveal. */
+  parts?: Part[];
+  /** Optional countdown for this question, in seconds (default: roundSeconds). */
+  seconds?: number;
+}
+
+/** One line of a basket: e.g. 2 × soup at $7.50 each. */
+export interface Part {
+  name: string;
+  /** Package size, e.g. "700 ml". */
+  size: string;
+  /** Package photo under public/. */
+  image: string;
+  qty: number;
+  /** Shelf price of ONE, in cents. */
+  unitCents: number;
 }
 
 export interface Rules {
@@ -116,6 +134,7 @@ export const CATALOG = {
     name: "PC® Garlic Parmesan Sourdough Pull-Aparts",
     ingredients: ["355 g"],
     images: ["/items/garlic-pull-aparts-b-3828e5.jpg", "/items/garlic-pull-aparts-a-3c382c.jpg"],
+    pack: "/items/garlic-pull-aparts-a-3c382c.jpg",
     priceCents: 350,
   },
   "beef-chili": {
@@ -164,6 +183,47 @@ export const CATALOG = {
 
 export type ItemId = keyof typeof CATALOG;
 const pick = (...ids: ItemId[]): Dish[] => ids.map((id) => CATALOG[id]);
+
+/**
+ * A gift-basket question: list catalog items with how many of each. The answer is added up for you.
+ *   basket("Soup Night", [["tomato-basil-bisque", 2], ["garlic-pull-aparts", 1]])
+ * `hero`: optional photo of the whole basket/dish; without one the big screen draws a basket of the items.
+ */
+export function basket(
+  name: string,
+  items: [ItemId, number][],
+  opts: { hero?: string; seconds?: number } = {},
+): Dish {
+  const parts: Part[] = items.map(([id, qty]) => {
+    const item: Dish = CATALOG[id];
+    return { name: item.name, size: item.ingredients[0] ?? "", image: item.pack ?? item.images[0], qty, unitCents: item.priceCents };
+  });
+  return {
+    name,
+    ingredients: parts.map((p) => `${p.qty} × ${p.name}${p.size ? ` (${p.size})` : ""}`),
+    images: opts.hero ? [opts.hero] : [],
+    priceCents: parts.reduce((sum, p) => sum + p.qty * p.unitCents, 0),
+    parts,
+    ...(opts.seconds ? { seconds: opts.seconds } : {}),
+  };
+}
+
+/** Example baskets made from the catalog (for previews; not in the line-up below). */
+export const SAMPLE_BASKETS = {
+  soupNight: basket("Holiday Soup Night Basket", [
+    ["tomato-basil-bisque", 2],
+    ["beef-chili", 1],
+    ["garlic-pull-aparts", 2],
+    ["butter-tart-pie", 1],
+  ]),
+  party: basket("Holiday Party Basket", [
+    ["beef-wellie-bites", 2],
+    ["goat-cheese-pack", 1],
+    ["black-label-pinsa", 1],
+    ["milk-chocolate-truffles", 1],
+    ["charcuterie-board", 1],
+  ]),
+};
 
 export const GAME_CONFIG: GameConfig = {
   title: "Guess the Price",
