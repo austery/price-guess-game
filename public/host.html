@@ -304,7 +304,7 @@
     function rulesText(rounds, seconds) {
       const g = (t) => `<b>${t}</b>`;
       return [
-        `There are ${g(`${rounds} baskets`)} — guess the ${g("total price")} of the 3-6 items in each.`,
+        `There are ${g(`${rounds} baskets`)}. Guess the ${g("total price")} of all the items in each basket.`,
         `The table that is closest to the total ${g("without going over")} wins that round!`,
         `The table with the most correct guesses ${g("wins a prize!")}`,
         `You have ${g(`${seconds} seconds`)} per basket. If you type it wrong, enter a new price before time runs out.`,
