@@ -61,7 +61,7 @@
 | 加赛 2 | Holiday Sweets Basket | 黄油挞派、2 × 蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋 | $29.00 |
 | 加赛 3 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
 
-**数据来源**：从杂志 PDF（39 页）抽出全部 115 个商品，其中 98 个有图片，已放进游戏商品库（Isle of Man 和 Bombas 的图是从拼盘照片裁的）。所有商品和价格都来自 PDF，没有从商店网站抓取。全部商品按类别排的清单见 `preview-baskets/Holiday-2026-全部商品和篮子.pdf`。完整清单（含杂志页码、SKU、游戏 ID）在 `preview-baskets/holiday-products-and-baskets.xlsx`，商品图鉴在 `preview-baskets/product-ids-*.png`。`preview-baskets/` 只在 Claude 的云端环境里，不上传 GitHub；需要的话请 Claude 重新生成。
+**数据来源**：从杂志 PDF（39 页）抽出全部 115 个商品，其中 98 个有图片，已放进游戏商品库（Isle of Man 和 Bombas 的图是从拼盘照片裁的）。所有商品和价格都来自 PDF，没有从商店网站抓取。全部商品按类别排的清单见 `docs/Holiday-2026-全部商品和篮子.pdf`。完整清单（含杂志页码、SKU、游戏 ID）在 `preview-baskets/holiday-products-and-baskets.xlsx`，商品图鉴在 `preview-baskets/product-ids-*.png`。`preview-baskets/` 只在 Claude 的云端环境里，不上传 GitHub；需要的话请 Claude 重新生成。
 
 **与之前表格的差异**：Belgian 松露巧克力（600 g）杂志印的是 **$15**，之前的表格写的是 $13（$13 是同一页 210 g 的 Praline Collection）。已改为 $15。
 
