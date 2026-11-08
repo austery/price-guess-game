@@ -1,6 +1,6 @@
 # 猜价格游戏 — 需求说明
 
-> 状态：功能完成，真实产品已导入。界面细节和最终题目选择可再调整。
+> 状态：功能完成，题目改为礼物篮（商品来自 Holiday 2026 杂志）。篮子组合可再调整。
 
 ## 游戏规则（来自活动原始说明）
 
@@ -87,31 +87,33 @@
 - 加赛只决定冠军，不改变 5 轮的得分。加赛只进行一次，不会无限加下去。
 - 建议另外准备一道后备题，以防加赛题临时出问题需要替换。
 
-## 题目内容
+## 题目内容：礼物篮
 
-题目是 16 个 President's Choice 产品，来自 `Candidate_Items.pptx` 和 `item_list_and_price.xlsx`。表格里的价格已和幻灯片上的价格逐一核对，16 个全部一致。
+题目来自 **PC Insiders Report Holiday 2026 杂志**（`4353501_HIR26_Book_EN_ROC`），价格都是杂志上印的税前价格。
 
-- **玩法改为直接猜产品售价**，提示语为 "Guess the shelf price of this item (before tax)."
-- **图片**：从太太的幻灯片里取出每个产品的包装图和美食图（不包括带价格的商品卡片），在大屏上做成拼贴：包装图放大，美食图斜着叠在旁边。PowerPoint 里被裁掉的部分也逐一检查过，没有价格。
-- **手机**只显示产品名和规格（例如 288 g），不显示图片。
-- 16 个产品都放在 `src/config.ts` 的 `CATALOG` 里，比赛用哪几个由下面三行决定，改 ID 即可：
+- **玩法**：每一题是一个礼物篮。大屏显示篮子和篮子里每样商品的照片、数量，各桌猜**总价**，提示语为 "Guess the total shelf price of everything shown (before tax)."
+- **揭晓**分两页：第一页每件商品挂黄色价格吊牌，下面是 Excel 样式的计算表（商品、数量、单价、小计、总计）；主持人再按空格，显示各桌报价。
+- **手机**显示商品清单文字（数量 × 名称和规格），揭晓后显示计算表。
+- **商品库**：杂志里有价格、有包装图的 96 个商品都在 `CATALOG` 里（`src/magazine.ts` 是从杂志自动生成的，`src/config.ts` 里的 16 个用的是之前幻灯片里更清晰的图）。每个商品的 ID 见 `preview-baskets/product-ids-*.png`（不提交）和 Excel 表。
+- **组篮子**：在 `src/config.ts` 里写 `basket("名字", [["商品ID", 数量], ...])`，总价自动相加。可选 `{ seconds: 20 }` 给这一题单独设倒计时，`{ hero: "/items/xxx.jpg" }` 换成一张真实的整篮照片。
+- **单价只在揭晓时**才从服务器发出；商品图片都检查过，图里没有价格。
 
-| 用途 | 当前选择（建议，可换） | 价格 |
+| 用途 | 当前方案（建议，可改） | 总价 |
 |---|---|---|
-| 练习 1 | Probiotic Yogurt | $4.00 |
-| 练习 2 | Garlic Parmesan Sourdough Pull-Aparts | $3.50 |
-| 第 1 轮 | Beef Wellie Bites | $10.00 |
-| 第 2 轮 | Santa's Milk and Cookies Ice Cream | $5.00 |
-| 第 3 轮 | CeraWare 11 in Skillet | $20.00 |
-| 第 4 轮 | Black Label Stracciatella e Speck Pinsa | $9.00 |
-| 第 5 轮 | Classic Belgian Milk Chocolate Truffles | $13.00 |
-| 加赛 | Buttermilk-Brined Young Turkey | $40.00 |
+| 练习 1 | Probiotic Yogurt（单个商品） | $4.00 |
+| 练习 2 | Mini Party Pack：2 汽水 + 1 爆米花 | $7.00 |
+| 第 1 轮 | Soup Night Basket | $33.50 |
+| 第 2 轮 | Aperitivo Hour Board | $57.00 |
+| 第 3 轮 | Pasta Night Basket | $41.75 |
+| 第 4 轮 | Favourite Things Gift Box | $43.00 |
+| 第 5 轮 | Holiday Sweets Basket | $40.50 |
+| 加赛 | Holiday Feast Box | $62.00 |
 
-### 需要组织者确认
+### 和之前表格不一致的地方
 
-- **3 个产品当时在打折**，表格用的是折扣价：Beef Chili 与 Tomato Basil Bisque 都是 $7.50（原价 $9.00），TidyStack 是 $20.00（原价 $21.00）。目前的选择避开了这 3 个。
-- **"before tax"**：Skillet、Charcuterie Board、Truffles 在商品卡片上注明 "Plus tax"。规则统一按税前货架价。
-- 第 17、18 张幻灯片（Insiders Report 封面、节日礼篮）不是产品，没有使用。
+- **Classic Belgian Milk Chocolate Covered Truffles（600 g）**：杂志印的是 **$15**，之前的表格写的是 $13（$13 是同一页的 Praline Collection，210 g）。已改成 $15。
+- 杂志上 Beef Chili、Tomato Basil Bisque 都是 $7.50（"Only $7.50!"），TidyStack 是 $20（"3 for $20!"），与之前一致。
+- 杂志上没印价格的商品没有收入：Antipasto-Go Rolls、Life Brand 12 Days of Masks、Halal BBQ Chicken、Greek Salad Kit、Sliced Cheesecake Selection。
 
 ## 异常处理
 

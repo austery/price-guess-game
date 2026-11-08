@@ -74,14 +74,16 @@ export interface GameConfig {
   tiebreaker?: Dish;
 }
 
+import { MAGAZINE } from "./magazine";
+
 // ---------------------------------------------------------------------------
-// All candidate products (from Candidate_Items.pptx + item_list_and_price.xlsx).
+// Products from Candidate_Items.pptx (better photos), prices checked against the
+// PC Insiders Report Holiday 2026 magazine. ~80 more magazine products are in magazine.ts.
 // Images: the product pictures from each slide (price cards left out).
 // Prices: shelf price "ea", before tax, as in the spreadsheet.
-// ⚠ Three were ON SALE when captured (sale price used): beef-chili, tomato-basil-bisque,
-//   tidystack-containers. The default line-up avoids them.
+// The magazine prints the soups at $7.50 ("Only $7.50!") and TidyStack at $20 ("3 for $20!").
 // ---------------------------------------------------------------------------
-export const CATALOG = {
+const SLIDE_ITEMS = {
   "beef-wellie-bites": {
     name: "PC® Beef Wellie Bites",
     ingredients: ["288 g"],
@@ -122,7 +124,7 @@ export const CATALOG = {
     name: "PC® Classic Belgian Milk Chocolate Covered Truffles",
     ingredients: ["600 g"],
     images: ["/items/milk-chocolate-truffles-a-219a5d.jpg", "/items/milk-chocolate-truffles-b-5fa3c8.jpg"],
-    priceCents: 1300,
+    priceCents: 1500, // magazine p.15 says $15 (the old spreadsheet's $13 is the Praline Collection)
   },
   "santas-ice-cream": {
     name: "PC® Scoop Shop Santa's Milk and Cookies Ice Cream",
@@ -132,7 +134,7 @@ export const CATALOG = {
   },
   "garlic-pull-aparts": {
     name: "PC® Garlic Parmesan Sourdough Pull-Aparts",
-    ingredients: ["355 g"],
+    ingredients: ["365 g"],
     images: ["/items/garlic-pull-aparts-b-3828e5.jpg", "/items/garlic-pull-aparts-a-3c382c.jpg"],
     pack: "/items/garlic-pull-aparts-a-3c382c.jpg",
     priceCents: 350,
@@ -141,13 +143,13 @@ export const CATALOG = {
     name: "PC® Slow Simmered Beef Chili",
     ingredients: ["700 g"],
     images: ["/items/beef-chili-b-d0c24b.jpg", "/items/beef-chili-a-86e648.jpg"],
-    priceCents: 750, // sale price (regular $9.00)
+    priceCents: 750,
   },
   "tomato-basil-bisque": {
     name: "PC® Slow Simmered Tomato Basil Bisque Soup",
     ingredients: ["700 ml"],
     images: ["/items/tomato-basil-bisque-a-68019d.jpg", "/items/tomato-basil-bisque-b-73e9c9.jpg"],
-    priceCents: 750, // sale price (regular $9.00)
+    priceCents: 750,
   },
   "charcuterie-board": {
     name: "PC® Oversized Acacia Charcuterie Board",
@@ -163,7 +165,7 @@ export const CATALOG = {
   },
   "ceraware-skillet": {
     name: "PC® CeraWare Ceramic Non-Stick Cast Aluminum Skillet",
-    ingredients: ["11 in"],
+    ingredients: ["11.5 in"],
     images: ["/items/ceraware-skillet-a-5cca1a.jpg", "/items/ceraware-skillet-b-8cca95.jpg"],
     priceCents: 2000,
   },
@@ -171,7 +173,7 @@ export const CATALOG = {
     name: "PC® TidyStack Glass Containers",
     ingredients: ["3 pack"],
     images: ["/items/tidystack-containers-a-6bf6a1.jpg", "/items/tidystack-containers-b-ad2275.jpg"],
-    priceCents: 2000, // sale price (regular $21.00)
+    priceCents: 2000, // "3 for $20" set
   },
   "probiotic-yogurt": {
     name: "PC® Lactose Free Strawberry and Blueberry Probiotic Yogurt",
@@ -180,6 +182,9 @@ export const CATALOG = {
     priceCents: 400,
   },
 } satisfies Record<string, Dish>;
+
+/** Every product the game can use, by ID. */
+export const CATALOG = { ...MAGAZINE, ...SLIDE_ITEMS } satisfies Record<string, Dish>;
 
 export type ItemId = keyof typeof CATALOG;
 const pick = (...ids: ItemId[]): Dish[] => ids.map((id) => CATALOG[id]);
@@ -227,7 +232,7 @@ export const SAMPLE_BASKETS = {
 
 export const GAME_CONFIG: GameConfig = {
   title: "Guess the Price",
-  guessPrompt: "Guess the shelf price of this item (before tax).",
+  guessPrompt: "Guess the total shelf price of everything shown (before tax).",
   tables: 15,
   roundSeconds: 15,
   submitGraceMs: 750,
@@ -237,11 +242,57 @@ export const GAME_CONFIG: GameConfig = {
     phoneShowsImage: false,
     revealAllBids: true,
   },
-  // ---- Line-up: change the IDs to swap products (the editor autocompletes them). ----
-  // Practice: cheap, simple items so everyone learns the flow. Doesn't count.
-  practice: pick("probiotic-yogurt", "garlic-pull-aparts"),
-  // Real rounds: as many rounds as items listed here.
-  dishes: pick("beef-wellie-bites", "santas-ice-cream", "ceraware-skillet", "black-label-pinsa", "milk-chocolate-truffles"),
+  // ---- Line-up. Change items/quantities freely; basket totals are added up automatically. ----
+  // Practice (doesn't count): one single product, then a tiny basket so everyone sees how baskets work.
+  practice: [
+    CATALOG["probiotic-yogurt"], // $4.00
+    basket("Mini Party Pack", [
+      ["shirley-temple-soda", 2],
+      ["gochujang-caramel-popcorn", 1],
+    ]), // $7.00
+  ],
+  // Real rounds: as many rounds as baskets listed here. Themes follow the magazine's sections.
+  dishes: [
+    basket("Soup Night Basket", [
+      ["lobster-bisque", 1],
+      ["tomato-basil-bisque", 2],
+      ["sourdough-crisps-sea-salt", 2],
+      ["sourdough-focaccia-parmesan-and-caramelized-onion", 1],
+    ]), // $33.50
+    basket("Aperitivo Hour Board", [
+      ["beef-wellie-bites", 2],
+      ["goat-cheese-pack", 1],
+      ["white-fox", 1],
+      ["charcuteria-meats", 1],
+      ["bistro-tomatoes", 1],
+    ]), // $57.00
+    basket("Pasta Night Basket", [
+      ["bolognese-ravioli", 2],
+      ["burrata-ravioli", 1],
+      ["solerama-tomatoes", 2],
+      ["truffle-ricotta-gnocchi", 1],
+      ["raspberry-hibiscus-sparkling-water", 1],
+    ]), // $41.75
+    basket("Favourite Things Gift Box", [
+      ["milk-chocolate-truffles", 1],
+      ["hand-cream-trio", 1],
+      ["epsom-salts", 1],
+      ["acne-patches", 1],
+      ["rice-cakes-dark-chocolate-raspberry", 2],
+    ]), // $43.00
+    basket("Holiday Sweets Basket", [
+      ["butter-tart-pie", 1],
+      ["eggnog-ice-cream", 2],
+      ["candy-cane-ice-cream", 1],
+      ["tiramisu-ice-cream-bars", 1],
+      ["ajwa-whole-dates", 1],
+    ]), // $40.50
+  ],
   // Only used if tables are tied for first.
-  tiebreaker: CATALOG["buttermilk-turkey"],
+  tiebreaker: basket("Holiday Feast Box", [
+    ["buttermilk-turkey", 1],
+    ["sous-chef-butter-thyme-baby-potatoes", 1],
+    ["sous-chef-miso-glazed-carrots", 1],
+    ["all-butter-croissants", 2],
+  ]), // $62.00
 };
