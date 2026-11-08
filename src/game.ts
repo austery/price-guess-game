@@ -12,9 +12,11 @@
 // use the same phases, but results are kept apart and never count. After the last practice round
 // (or "skipPractice"), the real game starts at round 0.
 //
-// Tiebreaker: if 2+ tables are tied for first at "final", the host can start one extra round
-// (round index = dishes.length) that only the tied tables answer:
+// Tiebreaker: if 2+ tables are tied for first at "final", the host can start an extra round
+// (round index = dishes.length + i for tiebreak basket i) that only the tied tables answer:
 //   final --startTiebreak--> waiting --start--> open --> locked --reveal--> revealed --next--> final
+// If that round leaves them tied again ("again"), the host starts the next tiebreak basket the same way.
+// On the last tiebreak basket a remaining tie is settled by drawing lots.
 
 import type { Dish, GameConfig } from "./config";
 import {
@@ -51,8 +53,8 @@ export interface GameState {
   bids: Record<string, Record<string, Bid>>;
   /** round index -> result, filled on reveal. */
   results: Record<string, RoundResult>;
-  /** Set when the tiebreaker starts: the tables tied for first. */
-  tiebreak: { tables: number[] } | null;
+  /** Set when a tiebreaker starts: the tables playing it, and which tiebreak basket (0-based). */
+  tiebreak: { tables: number[]; index: number } | null;
   tiebreakResult: TiebreakResult | null;
   /** Bumped on every change; handy for debugging and clients. */
   version: number;
@@ -89,7 +91,9 @@ export function initialState(cfg?: GameConfig): GameState {
 export function normalizeState(saved: Partial<GameState> | undefined, cfg?: GameConfig): GameState {
   if (!saved) return initialState(cfg);
   // A game saved before the intro existed has already been started: skip the intro.
-  return { ...initialState(), introStep: 3, ...saved };
+  const s = { ...initialState(), introStep: 3, ...saved };
+  if (s.tiebreak && s.tiebreak.index === undefined) s.tiebreak = { ...s.tiebreak, index: 0 };
+  return s;
 }
 
 export function isPractice(s: GameState): boolean {
@@ -100,14 +104,21 @@ export function isTiebreakRound(s: GameState, cfg: GameConfig): boolean {
   return !isPractice(s) && s.round >= cfg.dishes.length;
 }
 
-/** Key for this round's bids: "p0", "p1" for practice, "0".."4" for real rounds, "5" for the tiebreaker. */
+/** Key for this round's bids: "p0", "p1" for practice, "0".."4" for real rounds, "5", "6"... for tiebreakers. */
 function roundKey(s: GameState): string {
   return isPractice(s) ? `p${s.practiceRound}` : String(s.round);
 }
 
 function currentDish(s: GameState, cfg: GameConfig) {
   if (isPractice(s)) return cfg.practice[s.practiceRound!];
-  return isTiebreakRound(s, cfg) ? cfg.tiebreaker : cfg.dishes[s.round];
+  return isTiebreakRound(s, cfg) ? cfg.tiebreakers[s.round - cfg.dishes.length] : cfg.dishes[s.round];
+}
+
+/** The host may start a (further) tiebreaker now. */
+function tiebreakAvailable(s: GameState, cfg: GameConfig, lead: number[]): boolean {
+  if (s.phase !== "final") return false;
+  if (!s.tiebreak) return lead.length > 1 && cfg.tiebreakers.length > 0;
+  return s.tiebreakResult?.decidedBy === "again" && s.tiebreak.index + 1 < cfg.tiebreakers.length;
 }
 
 function standingsOf(s: GameState, cfg: GameConfig): Standing[] {
@@ -170,7 +181,7 @@ export function submit(s: GameState, cfg: GameConfig, token: string, priceInput:
 
 export function start(s: GameState, cfg: GameConfig, now: number) {
   if (s.phase !== "waiting") throw new GameError("bad_phase", "A round is already in progress.");
-  if (isTiebreakRound(s, cfg) && !(s.tiebreak && cfg.tiebreaker)) throw new GameError("bad_phase", "No more rounds.");
+  if (isTiebreakRound(s, cfg) && !(s.tiebreak && currentDish(s, cfg))) throw new GameError("bad_phase", "No more rounds.");
   s.bids[roundKey(s)] = {};
   if (isPractice(s)) delete s.practiceResults[s.practiceRound!];
   else if (isTiebreakRound(s, cfg)) s.tiebreakResult = null;
@@ -218,7 +229,8 @@ export function reveal(s: GameState, cfg: GameConfig, rand: () => number = Math.
     const p = s.practiceRound!;
     s.practiceResults[p] = scoreRound(bids, cfg.practice[p].priceCents, cfg.rules.roundTie);
   } else if (isTiebreakRound(s, cfg)) {
-    s.tiebreakResult = scoreTiebreak(bids, cfg.tiebreaker!.priceCents, s.tiebreak!.tables, rand);
+    const tb = s.tiebreak!;
+    s.tiebreakResult = scoreTiebreak(bids, currentDish(s, cfg)!.priceCents, tb.tables, rand, tb.index + 1 < cfg.tiebreakers.length);
   } else {
     s.results[s.round] = scoreRound(bids, cfg.dishes[s.round].priceCents, cfg.rules.roundTie);
   }
@@ -257,15 +269,25 @@ export function skipPractice(s: GameState) {
   bump(s);
 }
 
-/** After all rounds, if 2+ tables share first place: only they play one extra round. */
+/**
+ * After all rounds, if 2+ tables share first place: only they play an extra round.
+ * Called again after a tiebreaker that ended tied ("again"): the still-tied tables play the next basket.
+ */
 export function startTiebreak(s: GameState, cfg: GameConfig) {
   if (s.phase !== "final") throw new GameError("bad_phase", "The tiebreaker comes after the last round.");
-  if (!cfg.tiebreaker) throw new GameError("no_tiebreaker", "No tiebreaker question is configured.");
-  if (s.tiebreak) throw new GameError("bad_phase", "The tiebreaker has already been played.");
-  const tied = leaders(standingsOf(s, cfg));
-  if (tied.length < 2) throw new GameError("bad_phase", "There is no tie for first place.");
-  s.tiebreak = { tables: tied };
-  s.round = cfg.dishes.length;
+  if (cfg.tiebreakers.length === 0) throw new GameError("no_tiebreaker", "No tiebreaker question is configured.");
+  let next: { tables: number[]; index: number };
+  if (!s.tiebreak) {
+    const tied = leaders(standingsOf(s, cfg));
+    if (tied.length < 2) throw new GameError("bad_phase", "There is no tie for first place.");
+    next = { tables: tied, index: 0 };
+  } else {
+    if (!tiebreakAvailable(s, cfg, [])) throw new GameError("bad_phase", "The tiebreaker has already been decided.");
+    next = { tables: s.tiebreakResult!.lotFrom, index: s.tiebreak.index + 1 };
+  }
+  s.tiebreak = next;
+  s.tiebreakResult = null;
+  s.round = cfg.dishes.length + next.index;
   s.phase = "waiting";
   s.deadline = null;
   bump(s);
@@ -328,8 +350,10 @@ export interface CommonView {
   phase: Phase;
   /** Intro screen to show while waiting: 0 join, 1 welcome, 2 rules; 3 = intro over. */
   introStep: number;
-  /** true while the tiebreaker round is being played. */
+  /** true while a tiebreaker round is being played. */
   isTiebreak: boolean;
+  /** 1-based number of the tiebreaker being played (or last played), or null. */
+  tiebreakNumber: number | null;
   /** Practice round info while practising (results never count). */
   isPractice: boolean;
   /** 1-based practice round number, or null. */
@@ -400,7 +424,7 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
   let champion: Champion | null = null;
   if (s.phase === "final" || (tiebreakRound && s.phase === "revealed")) {
     if (lead.length === 1) champion = { table: lead[0], how: "rounds" };
-    else if (s.tiebreakResult) champion = { table: s.tiebreakResult.winners[0], how: s.tiebreakResult.decidedBy };
+    else if (s.tiebreakResult?.winners.length) champion = { table: s.tiebreakResult.winners[0], how: s.tiebreakResult.decidedBy };
   }
   return {
     title: cfg.title,
@@ -408,6 +432,7 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     phase: s.phase,
     introStep: s.introStep,
     isTiebreak: tiebreakRound,
+    tiebreakNumber: s.tiebreak ? s.tiebreak.index + 1 : null,
     isPractice: isPractice(s),
     practiceNumber: isPractice(s) ? s.practiceRound! + 1 : null,
     practiceTotal: cfg.practice.length,
@@ -415,7 +440,7 @@ function common(s: GameState, cfg: GameConfig, now: number): CommonView {
     tiebreakTables: s.tiebreak?.tables ?? null,
     tiebreakResult: s.tiebreakResult,
     champion,
-    canStartTiebreak: s.phase === "final" && lead.length > 1 && !!cfg.tiebreaker && !s.tiebreak,
+    canStartTiebreak: tiebreakAvailable(s, cfg, lead),
     roundNumber: s.round + 1,
     totalRounds: cfg.dishes.length,
     roundSeconds: cfg.roundSeconds,
@@ -448,7 +473,7 @@ export function hostView(s: GameState, cfg: GameConfig, now: number, connectedTa
   return {
     ...common(s, cfg, now),
     role: "host",
-    preloadImages: [...cfg.practice, ...cfg.dishes, ...(cfg.tiebreaker ? [cfg.tiebreaker] : [])].flatMap((d) => [
+    preloadImages: [...cfg.practice, ...cfg.dishes, ...cfg.tiebreakers].flatMap((d) => [
       ...d.images,
       ...(d.parts ?? []).map((p) => p.image),
     ]).filter((u, i, all) => all.indexOf(u) === i),

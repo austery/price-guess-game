@@ -93,8 +93,8 @@
           <div class="card">
             <h1>⚔ Tiebreaker!</h1>
             <p>Your table is <strong>tied for first place</strong> with Table ${view.tiebreakTables.filter((t) => t !== view.myTable).join(", ")}.</p>
-            <p class="muted">One more question, ${view.roundSeconds} seconds. Closest without going over wins.
-            If everyone goes over, the closest guess wins; if still tied, we draw lots.</p>
+            <p class="muted">One more basket, ${view.questionSeconds} seconds. Closest without going over wins.
+            If everyone goes over, the closest guess wins; if still tied, another basket decides.</p>
           </div>`;
         return;
       }
@@ -111,10 +111,12 @@
               : `<h1>You're in! 🎉</h1>`}
             <p class="muted">${view.introStep < 3 ? "You're in! Watch the big screen." : `${esc(roundLabel)} is about to start. Watch the big screen.`}</p>
             <ol style="padding-left:20px;margin:8px 0 0;line-height:1.5">
-              <li>A holiday basket appears — add up the prices. You have <strong>${view.roundSeconds} seconds</strong>.</li>
-              <li>${esc(view.guessPrompt)}</li>
-              <li><strong>Closest without going over</strong> wins the round.</li>
-              <li>Most rounds won takes the prize!</li>
+              <li>There will be ${view.totalRounds} shopping baskets displayed.</li>
+              <li>Each basket is on an individual slide along with 3-6 items used to make that basket.</li>
+              <li>Your table will guess the price of all the items for that basket summed together.</li>
+              <li>The table that is closest to the total without going over wins that round!</li>
+              <li>The table with the most correct guesses wins a prize!</li>
+              <li>You have <strong>${view.roundSeconds} seconds</strong> per basket. Typed it wrong? Enter a new price before time runs out — your last entry counts.</li>
             </ol>
           </div>
           ${standingsMini()}
@@ -171,6 +173,7 @@
         const what = view.isTiebreak ? "the tiebreaker" : view.isPractice ? "this practice round (doesn't count)" : "this round";
         let verdict = inTiebreak || !view.isTiebreak ? `<span class="muted">No guess from your table.</span>` : "";
         if (me?.winner) verdict = `<span class="good">🏆 Your table wins ${what}!</span>`;
+        else if (view.isTiebreak && r.decidedBy === "again") verdict = r.lotFrom.includes(view.myTable) ? `<span class="good">Still tied — one more basket!</span>` : `Not this time.`;
         else if (me && view.isTiebreak) verdict = `Not this time — Table ${r.winners[0]} wins the tiebreaker.`;
         else if (me?.over) verdict = `<span class="bad">Over by ${formatCents(-me.diff)} — disqualified.</span>`;
         else if (me) verdict = `Under by <span class="price">${formatCents(me.diff)}</span>.`;
@@ -179,7 +182,9 @@
             <div class="muted">${esc(view.dish?.name ?? "")}</div>
             <div class="big-result">Actual: <span class="price">${formatCents(r.priceCents)}</span></div>
             <p style="text-align:center;font-size:20px">${verdict}</p>
-            <p style="text-align:center">${view.isTiebreak
+            <p style="text-align:center">${view.isTiebreak && r.decidedBy === "again"
+              ? `Still tied: <strong>Tables ${r.lotFrom.join(" & ")}</strong> play another basket.`
+              : view.isTiebreak
               ? `Tiebreaker winner: <strong>Table ${r.winners[0]}</strong><br><span class="muted">${
                   r.decidedBy === "under" ? "Closest without going over." : r.decidedBy === "closest" ? "Everyone went over — closest guess wins." : "Still tied — drawn by lot."}</span>`
               : r.winners.length ? `${view.isPractice ? "Practice winner" : "Round winner"}: <strong>Table ${r.winners.join(", ")}</strong>`

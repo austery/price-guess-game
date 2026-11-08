@@ -10,6 +10,7 @@ import {
   playerView,
   reveal,
   start,
+  resetRound,
   startTiebreak,
   submit,
   type GameState,
@@ -108,16 +109,16 @@ describe("tiebreaker flow", () => {
 
     startTiebreak(s, cfg);
     expect(s.phase).toBe("waiting");
-    expect(s.tiebreak).toEqual({ tables: [3, 5, 8, 10, 12] });
+    expect(s.tiebreak).toEqual({ tables: [3, 5, 8, 10, 12], index: 0 });
     expect(playerView(s, cfg, tok(1), T0).dish).toBeNull(); // hidden until start
 
     const now = T0 + 999_000;
     start(s, cfg, now);
     const pv = playerView(s, cfg, tok(3), now);
     expect(pv.isTiebreak).toBe(true);
-    expect(pv.dish?.name).toBe(cfg.tiebreaker!.name);
+    expect(pv.dish?.name).toBe(cfg.tiebreakers[0].name);
     expect(code(() => submit(s, cfg, tok(1), "10", now))).toBe("not_in_tiebreak");
-    const price = cfg.tiebreaker!.priceCents;
+    const price = cfg.tiebreakers[0].priceCents;
     submit(s, cfg, tok(8), ((price - 50) / 100).toFixed(2), now);
     submit(s, cfg, tok(3), ((price - 300) / 100).toFixed(2), now);
     submit(s, cfg, tok(12), ((price + 10) / 100).toFixed(2), now);
@@ -135,7 +136,7 @@ describe("tiebreaker flow", () => {
     const fv = hostView(s, cfg, now, []);
     expect(fv.phase).toBe("final");
     expect(fv.champion).toEqual({ table: 8, how: "under" });
-    expect(fv.canStartTiebreak).toBe(false); // only once
+    expect(fv.canStartTiebreak).toBe(false); // decided: no more tiebreakers
     expect(code(() => startTiebreak(s, cfg))).toBe("bad_phase");
     // regular standings are untouched by the tiebreaker
     expect(fv.standings.find((x) => x.table === 8)!.wins).toBe(1);
@@ -147,8 +148,55 @@ describe("tiebreaker flow", () => {
     expect(s.tiebreak!.tables).toEqual([3, 8]);
   });
 
+  it("still tied after a tiebreaker -> the still-tied tables play the next basket; lots only after the last", () => {
+    expect(cfg.tiebreakers.length).toBe(3);
+    const s = playRounds([[3], [8], [12], [5], [10]]);
+    let now = T0 + 999_000;
+    const playTb = (bids: Record<number, number>) => {
+      start(s, cfg, now);
+      const price = cfg.tiebreakers[s.tiebreak!.index].priceCents;
+      for (const [t, off] of Object.entries(bids)) submit(s, cfg, tok(Number(t)), ((price + off) / 100).toFixed(2), now);
+      lockNow(s, now);
+      reveal(s, cfg, () => 0);
+      return hostView(s, cfg, now, []);
+    };
+
+    startTiebreak(s, cfg);
+    // tables 3 and 8 give the same best guess; 12 is further off
+    let v = playTb({ 3: -100, 8: -100, 12: -500 });
+    expect(v.result).toMatchObject({ winners: [], decidedBy: "again", lotFrom: [3, 8] });
+    expect(v.champion).toBeNull();
+    next(s, cfg);
+    v = hostView(s, cfg, now, []);
+    expect(v.phase).toBe("final");
+    expect(v.champion).toBeNull();
+    expect(v.canStartTiebreak).toBe(true);
+
+    startTiebreak(s, cfg);
+    expect(s.tiebreak).toEqual({ tables: [3, 8], index: 1 });
+    now += 100_000;
+    start(s, cfg, now);
+    expect(hostView(s, cfg, now, []).dish!.name).toBe(cfg.tiebreakers[1].name);
+    expect(code(() => submit(s, cfg, tok(12), "10", now))).toBe("not_in_tiebreak");
+    resetRound(s);
+
+    // nobody answers basket 2 -> again; basket 3 tied again -> drawn by lot
+    v = playTb({});
+    expect(v.result).toMatchObject({ decidedBy: "again", lotFrom: [3, 8] });
+    next(s, cfg);
+    startTiebreak(s, cfg);
+    expect(s.tiebreak).toEqual({ tables: [3, 8], index: 2 });
+    now += 100_000;
+    v = playTb({ 3: 200, 8: 200 });
+    expect(v.result).toMatchObject({ decidedBy: "lot", lotFrom: [3, 8], winners: [3] });
+    expect(v.champion).toEqual({ table: 3, how: "lot" });
+    next(s, cfg);
+    expect(hostView(s, cfg, now, []).canStartTiebreak).toBe(false);
+    expect(code(() => startTiebreak(s, cfg))).toBe("bad_phase");
+  });
+
   it("without a configured tiebreaker the tie is just shown", () => {
-    const noTb: GameConfig = { ...cfg, tiebreaker: undefined };
+    const noTb: GameConfig = { ...cfg, tiebreakers: [] };
     const s = playRounds([[3], [8], [12], [5], [10]]);
     expect(hostView(s, noTb, T0, []).canStartTiebreak).toBe(false);
     expect(code(() => startTiebreak(s, noTb))).toBe("no_tiebreaker");

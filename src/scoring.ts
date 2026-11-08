@@ -153,15 +153,16 @@ export function leaders(standings: Standing[]): number[] {
  * How the tiebreaker was decided:
  *  - "under":   one table closest without going over (normal rule)
  *  - "closest": every tied table went over -> closest to the price wins
- *  - "lot":     still tied (same top bid / same distance / nobody answered) -> random draw
+ *  - "again":   still tied, and another tiebreak basket is left -> the still-tied tables play it
+ *  - "lot":     still tied on the last tiebreak basket (same top bid / same distance / nobody answered) -> random draw
  */
-export type TiebreakDecision = "under" | "closest" | "lot";
+export type TiebreakDecision = "under" | "closest" | "again" | "lot";
 
 export interface TiebreakResult extends RoundResult {
   /** Tables that were tied for first and played the tiebreaker. */
   participants: number[];
   decidedBy: TiebreakDecision;
-  /** Tables the lot was drawn from (empty unless decidedBy === "lot"). */
+  /** Tables still tied: the lot was drawn from them ("lot"), or they play the next basket ("again"). */
   lotFrom: number[];
 }
 
@@ -169,14 +170,17 @@ export interface TiebreakResult extends RoundResult {
  * Agreed rule:
  *  1. closest without going over wins;
  *  2. if all tied tables went over, the one closest to the price wins;
- *  3. if still tied (or nobody answered), draw lots among them.
+ *  3. if still tied (or nobody answered): the still-tied tables play the next tiebreak basket
+ *     (`playAgain`), or, on the last one, a lot is drawn among them.
  * A table that doesn't answer loses (it can only win through the "nobody answered" draw).
+ * With "again" there is no winner yet: `winners` is empty.
  */
 export function scoreTiebreak(
   bids: Record<number, Bid>,
   priceCents: number,
   participants: number[],
   rand: () => number = Math.random,
+  playAgain = false,
 ): TiebreakResult {
   const allowed = new Set(participants);
   const own: Record<number, Bid> = {};
@@ -212,12 +216,13 @@ export function scoreTiebreak(
 
   if (winner === null) {
     lotFrom = [...lotFrom].sort((a, b) => a - b);
-    winner = lotFrom[Math.min(lotFrom.length - 1, Math.floor(rand() * lotFrom.length))];
+    if (playAgain) decidedBy = "again";
+    else winner = lotFrom[Math.min(lotFrom.length - 1, Math.floor(rand() * lotFrom.length))];
   }
   return {
     priceCents,
     entries: base.entries.map((e) => ({ ...e, winner: e.table === winner })),
-    winners: [winner],
+    winners: winner === null ? [] : [winner],
     participants: [...participants].sort((a, b) => a - b),
     decidedBy,
     lotFrom,

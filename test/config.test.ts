@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CATALOG, GAME_CONFIG } from "../src/config";
 import { hostView, initialState, playerView } from "../src/game";
 
-const all = [...GAME_CONFIG.practice, ...GAME_CONFIG.dishes, ...(GAME_CONFIG.tiebreaker ? [GAME_CONFIG.tiebreaker] : [])];
+const all = [...GAME_CONFIG.practice, ...GAME_CONFIG.dishes, ...GAME_CONFIG.tiebreakers];
 
 describe("game config", () => {
   it("every item image exists under public/", () => {

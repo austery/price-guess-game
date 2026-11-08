@@ -105,7 +105,7 @@
     /** 0 for the first question (practice 1), 1 for the next, ... */
     function questionIndex(v) {
       if (v.isPractice) return v.practiceNumber - 1;
-      if (v.isTiebreak) return v.practiceTotal + v.totalRounds;
+      if (v.isTiebreak) return v.practiceTotal + v.totalRounds + (v.tiebreakNumber - 1);
       return v.practiceTotal + (v.roundNumber - 1);
     }
     function backgroundFor(v) {
@@ -242,7 +242,7 @@
       document.getElementById("topLeft").innerHTML =
         view.phase === "waiting" && view.introStep < 3 ? `<strong>${esc(view.title)}</strong> · Holiday Edition`
         : view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
-        : view.isTiebreak ? `<strong>Tiebreaker</strong> · Tables ${view.tiebreakTables.join(", ")}`
+        : view.isTiebreak ? `<strong>Tiebreaker${view.tiebreakNumber > 1 ? ` ${view.tiebreakNumber}` : ""}</strong> · Tables ${view.tiebreakTables.join(", ")}`
         : view.isPractice ? `<strong>Practice ${view.practiceNumber}</strong> of ${view.practiceTotal} · doesn't count`
         : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
       document.getElementById("topRight").textContent =
@@ -300,28 +300,23 @@
         </div>`;
     }
 
+    // The organisers' rule text, word for word, plus the re-entry rule.
+    function rulesList(rounds, seconds) {
+      return [
+        `There will be ${rounds} shopping baskets displayed.`,
+        "Each basket is on an individual slide along with 3-6 items used to make that basket.",
+        "Your table will guess the price of all the items for that basket summed together.",
+        "The table that is closest to the total without going over wins that round!",
+        "The table with the most correct guesses wins a prize!",
+        `You have ${seconds} seconds per basket. Typed it wrong? Enter a new price before time runs out — your last entry counts.`,
+      ];
+    }
+
     function renderRules() {
-      const rounds = view.totalRounds;
-      const practice = view.practiceTotal;
       main.innerHTML = `
-        <div class="rules">
-          <h1>How to <span class="script">play</span></h1>
-          <div class="rule-cards">
-            <div class="rule-card"><div class="num">📱</div><h2>One phone per table</h2>
-              <p>One person at each table types your table's answer.</p></div>
-            <div class="rule-card"><div class="num">⏱️</div><h2>${view.roundSeconds} seconds</h2>
-              <p>A holiday basket appears. Add up the shelf prices (before tax) and enter the total before time runs out.</p></div>
-            <div class="rule-card"><div class="num">🎯</div><h2>Don't go over!</h2>
-              <p>The closest price <strong>without going over</strong> wins the round.</p></div>
-            <div class="rule-card"><div class="num">🏆</div><h2>Win the most rounds</h2>
-              <p>${practice ? `${practice} practice round${practice === 1 ? "" : "s"} first (just for fun), then ` : ""}${rounds} rounds for real. Most wins takes the prize!</p></div>
-          </div>
-          <div class="example">
-            <span>Example — real price <strong>$10.00</strong>:</span>
-            <span class="pill win">$9.50 ✓ wins</span>
-            <span class="pill">$8.00 too low</span>
-            <span class="pill over">$10.25</span><span>over = out</span>
-          </div>
+        <div class="rules plain">
+          <h1>Rules</h1>
+          <ol>${rulesList(view.totalRounds, view.roundSeconds).map((r) => `<li>${esc(r)}</li>`).join("")}</ol>
         </div>`;
     }
 
@@ -454,7 +449,7 @@
       const r = view.result;
       const b = view.breakdown;
       const headline = view.isTiebreak
-        ? `🏆 Table ${r.winners[0]} wins the tiebreaker!`
+        ? tiebreakHeadline(r)
         : r.winners.length
           ? `🏆 Table ${r.winners.join(" & ")} ${view.isPractice ? "would have won!" : "wins this round!"}`
           : "Everyone went over — no winner.";
@@ -481,9 +476,16 @@
         </div>`;
     }
 
+    function tiebreakHeadline(r) {
+      return r.decidedBy === "again"
+        ? `⚔ Still tied! Tables ${r.lotFrom.join(" & ")} play another basket.`
+        : `🏆 Table ${r.winners[0]} wins the tiebreaker!`;
+    }
+
     function tiebreakHow(r) {
       if (r.decidedBy === "under") return "Closest without going over.";
       if (r.decidedBy === "closest") return "Everyone went over — the closest guess wins.";
+      if (r.decidedBy === "again") return r.entries.length ? "Same distance from the price — one more basket decides." : "No table answered — one more basket decides.";
       return r.lotFrom.length === r.participants.length && !r.entries.length
         ? "No table answered — winner drawn by lot."
         : `Still tied (Tables ${r.lotFrom.join(", ")}) — winner drawn by lot.`;
@@ -492,10 +494,10 @@
     function renderTiebreakIntro() {
       main.innerHTML = `
         <div class="standings">
-          <h1>⚔ Tiebreaker!</h1>
-          <p style="font-size:2.4vw">Tables <strong>${view.tiebreakTables.join(", ")}</strong> are tied for first place.</p>
+          <h1>⚔ Tiebreaker${view.tiebreakNumber > 1 ? ` ${view.tiebreakNumber}` : ""}!</h1>
+          <p style="font-size:2.4vw">Tables <strong>${view.tiebreakTables.join(", ")}</strong> are ${view.tiebreakNumber > 1 ? "still tied" : "tied for first place"}.</p>
           <p class="muted" style="font-size:1.8vw">One more question — only these tables answer. ${view.questionSeconds} seconds, closest without going over wins.
-            If everyone goes over, the closest guess wins; if still tied, we draw lots.</p>
+            If everyone goes over, the closest guess wins; if still tied, another basket decides.</p>
           ${chips(false, true)}
         </div>`;
     }
@@ -505,7 +507,7 @@
       const r = view.result;
       const practiceNote = `<div class="muted" style="font-size:1.6vw;font-weight:400">Practice — doesn't count.</div>`;
       const headline = view.isTiebreak
-        ? `🏆 Table ${r.winners[0]} wins the tiebreaker!<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
+        ? `${tiebreakHeadline(r)}<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
         : view.isPractice
           ? (r.winners.length ? `Table ${r.winners.join(" & ")} would have won!` : "Everyone went over!") + practiceNote
         : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
@@ -533,7 +535,9 @@
         : `Scoreboard — next up: round ${view.roundNumber} of ${view.totalRounds}`;
       let note = "";
       if (final && champ && champ.how !== "rounds") note = `Won the tiebreaker against Tables ${view.tiebreakTables.filter((t) => t !== champ.table).join(", ")}.`;
-      else if (final && !champ && view.canStartTiebreak) note = "Press Space for the tiebreaker — only the tied tables answer.";
+      else if (final && !champ && view.canStartTiebreak) note = view.tiebreakResult?.decidedBy === "again"
+        ? `Still tied: Tables ${view.tiebreakResult.lotFrom.join(", ")}. Press Space for the next tiebreaker.`
+        : "Press Space for the tiebreaker — only the tied tables answer.";
       else if (final && !champ && lead.length > 1) note = "No tiebreaker question configured — the host decides.";
       main.innerHTML = `
         <div class="standings">
@@ -546,7 +550,7 @@
           ${final ? `<h2 style="margin-top:2vw">Round by round</h2><table>${view.roundWinners.map((w) => `
             <tr><td>R${w.roundNumber}</td><td>${esc(w.dishName)}</td><td class="price">${formatCents(w.priceCents)}</td>
             <td>${w.winners.length ? `Table ${w.winners.join(", ")}` : "—"}</td></tr>`).join("")}
-            ${view.tiebreakResult ? `<tr><td>TB</td><td>${esc(view.dish?.name ?? "Tiebreaker")}</td>
+            ${view.tiebreakResult?.winners.length ? `<tr><td>TB</td><td>${esc(view.dish?.name ?? "Tiebreaker")}</td>
               <td class="price">${formatCents(view.tiebreakResult.priceCents)}</td><td>Table ${view.tiebreakResult.winners[0]}</td></tr>` : ""}
             </table>` : chips(false, true)}
         </div>`;

@@ -84,4 +84,6 @@ export const MAGAZINE = {
   "all-butter-croissants": { name: "PC® All-Butter Croissants", ingredients: ["312 g"], images: ["/items/all-butter-croissants-feb269.jpg"], priceCents: 600 }, // magazine p.35
   "salmon-wellington": { name: "PC® Salmon Wellington", ingredients: ["725 g"], images: ["/items/salmon-wellington-99ef71.jpg"], priceCents: 2500 }, // magazine p.35
   "candy-cane-ice-cream": { name: "PC® Candy Cane Chocolate Fudge Crackle Ice Cream", ingredients: ["1.5 L"], images: ["/items/candy-cane-ice-cream-53e64c.jpg"], priceCents: 650 }, // magazine p.35
+  "isle-of-man": { name: "PC® Black Label Isle Of Man", ingredients: ["250 g"], images: ["/items/isle-of-man-cd93d8.jpg"], priceCents: 800 }, // magazine p.24; photo cropped from the board shot (no pack shot printed)
+  "bombas": { name: "PC® Bombas", ingredients: ["240 g"], images: ["/items/bombas-0a92b2.jpg"], priceCents: 700 }, // magazine p.24; photo cropped from the board shot (no pack shot printed)
 } satisfies Record<string, Dish>;

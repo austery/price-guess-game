@@ -68,10 +68,11 @@ export interface GameConfig {
   practice: Dish[];
   dishes: Dish[];
   /**
-   * Played only if two or more tables are tied for first after all rounds.
-   * Only the tied tables answer. Leave undefined to just show the tie.
+   * Played only if two or more tables are tied for first after all rounds; only the tied tables answer.
+   * If they are still tied after one, the still-tied tables play the next; after the last, lots are drawn.
+   * Use [] to just show the tie.
    */
-  tiebreaker?: Dish;
+  tiebreakers: Dish[];
 }
 
 import { MAGAZINE } from "./magazine";
@@ -234,7 +235,7 @@ export const GAME_CONFIG: GameConfig = {
   title: "Guess the Price",
   guessPrompt: "Guess the total shelf price of everything shown (before tax).",
   tables: 15,
-  roundSeconds: 30, // baskets: time to read, add up and agree
+  roundSeconds: 45, // baskets: time to read, add up and agree
   submitGraceMs: 750,
   rules: {
     roundTie: "all-score",
@@ -242,16 +243,26 @@ export const GAME_CONFIG: GameConfig = {
     phoneShowsImage: false,
     revealAllBids: true,
   },
-  // ---- Line-up. Change items/quantities freely; basket totals are added up automatically. ----
-  // Practice (doesn't count): one single product, then a tiny basket so everyone sees how baskets work.
+  // ---- Line-up. Every product comes from the PC Insiders Report Holiday 2026 (prices as printed there).
+  // Change items/quantities freely; basket totals are added up automatically.
+  // Practice (doesn't count): two baskets so everyone learns how it works.
   practice: [
-    CATALOG["probiotic-yogurt"], // $4.00
-    basket("Mini Party Pack", [
-      ["shirley-temple-soda", 2],
-      ["gochujang-caramel-popcorn", 1],
-    ]), // $7.00
+    basket("Holiday Party Snacks", [
+      ["beef-wellie-bites", 1],
+      ["fish-chips-stacks", 1],
+      ["bombas", 1],
+      ["shrimp-chips", 1],
+      ["gochujang-caramel-popcorn", 2],
+    ]), // $42.00
+    basket("Cheese Board", [
+      ["goat-cheese-pack", 1],
+      ["amarena-goat-cheese", 2],
+      ["white-fox", 1],
+      ["isle-of-man", 1],
+      ["lactose-free-mozzarella", 1],
+    ]), // $46.50
   ],
-  // Real rounds: as many rounds as baskets listed here. Themes follow the magazine's sections.
+  // Real rounds: as many rounds as baskets listed here.
   dishes: [
     basket("Soup Night Basket", [
       ["lobster-bisque", 1],
@@ -259,40 +270,54 @@ export const GAME_CONFIG: GameConfig = {
       ["sourdough-crisps-sea-salt", 2],
       ["sourdough-focaccia-parmesan-and-caramelized-onion", 1],
     ]), // $33.50
-    basket("Aperitivo Hour Board", [
-      ["beef-wellie-bites", 2],
-      ["goat-cheese-pack", 1],
-      ["white-fox", 1],
-      ["charcuteria-meats", 1],
-      ["bistro-tomatoes", 1],
-    ]), // $57.00
-    basket("Pasta Night Basket", [
-      ["bolognese-ravioli", 2],
-      ["burrata-ravioli", 1],
-      ["solerama-tomatoes", 2],
-      ["truffle-ricotta-gnocchi", 1],
-      ["raspberry-hibiscus-sparkling-water", 1],
-    ]), // $41.75
-    basket("Favourite Things Gift Box", [
+    basket("Pampered Pets Basket", [
+      ["dog-food-digestive", 1],
+      ["dog-food-skin-coat", 1],
+      ["dog-food-mobility", 1],
+      ["cat-food", 2],
+    ]), // $118.00
+    basket("Joe Fresh Winter Wardrobe", [
+      ["fair-isle-sweater", 1],
+      ["kids-fair-isle-sweater", 1],
+      ["fleece-jogger", 1],
+      ["faux-fur-trapper-hat", 1],
+      ["faux-fur-earmuffs", 1],
+    ]), // $146.00
+    basket("Bakery Basket", [
+      ["sourdough-focaccia-rosemary-sea-salt", 1],
+      ["sourdough-focaccia-green-olive", 1],
+      ["sourdough-baguette", 2],
+      ["garlic-pull-aparts", 1],
+      ["all-butter-croissants", 2],
+    ]), // $32.50
+    basket("Chocolate Lover's Basket", [
       ["milk-chocolate-truffles", 1],
-      ["hand-cream-trio", 1],
-      ["epsom-salts", 1],
-      ["acne-patches", 1],
-      ["rice-cakes-dark-chocolate-raspberry", 2],
-    ]), // $43.00
+      ["rice-cakes-milk-chocolate-caramel", 2],
+      ["rice-cakes-dark-chocolate-raspberry", 1],
+      ["choc-almonds-milk-chocolate", 2],
+      ["choc-almonds-dark-chocolate", 2],
+      ["candy-cane-ice-cream", 1],
+    ]), // $38.50
+  ],
+  // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
+  tiebreakers: [
+    basket("Holiday Feast Box", [
+      ["buttermilk-turkey", 1],
+      ["sous-chef-butter-thyme-baby-potatoes", 1],
+      ["sous-chef-miso-glazed-carrots", 1],
+      ["all-butter-croissants", 2],
+    ]), // $62.00
     basket("Holiday Sweets Basket", [
       ["butter-tart-pie", 1],
       ["eggnog-ice-cream", 2],
-      ["candy-cane-ice-cream", 1],
       ["tiramisu-ice-cream-bars", 1],
-      ["ajwa-whole-dates", 1],
-    ]), // $40.50
+      ["santas-ice-cream", 1],
+    ]), // $29.00
+    basket("Favourite Things Gift Box", [
+      ["hand-cream-trio", 1],
+      ["epsom-salts", 1],
+      ["acne-patches", 1],
+      ["toner-pads-cica-chic-soothing", 1],
+    ]), // $47.00
   ],
-  // Only used if tables are tied for first.
-  tiebreaker: basket("Holiday Feast Box", [
-    ["buttermilk-turkey", 1],
-    ["sous-chef-butter-thyme-baby-potatoes", 1],
-    ["sous-chef-miso-glazed-carrots", 1],
-    ["all-butter-croissants", 2],
-  ]), // $62.00
 };
