@@ -51,10 +51,10 @@
 
 1. **扫码页**：二维码和网址，以及各桌加入情况。
 2. **欢迎页**：PC Insiders Report Holiday 封面扇形展开，标题 "Guess the Price! Holiday Edition"。
-3. **规则页**：白底文字列表，照抄组织者给的 5 条英文规则，再加第 6 条（黄色横幅、粗体）："You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out." 每条规则一行，带金色编号和图标，关键词用金色。手机上显示同样的 6 条。
+3. **规则页**：组织者的规则精简成 4 条，每条一行，带金色编号，关键词用金色：① There are 5 baskets — guess the total price of the 3-6 items in each.（原第 1–3 条合并）② The table that is closest to the total without going over wins that round! ③ The table with the most correct guesses wins a prize! ④ You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out. 手机上显示同样的 4 条。
 4. 再按空格开始练习第 1 轮。
 
-开场时，手机上显示欢迎语和同样的 6 条规则。界面统一用 Holiday Insiders Report 风格：白字、金色价格、青柠绿标出赢家。
+开场时，手机上显示欢迎语和同样的 4 条规则。界面统一用 Holiday Insiders Report 风格：白字、金色价格、青柠绿标出赢家。
 
 - **大屏背景**：经典圣诞风格，用代码绘制，任何尺寸的屏幕都清晰。四种浓郁底色（品牌洋红、酒红、常青绿、午夜蓝）每换一屏轮换一种，配淡金色雪花、柔和光点和金色细边框。备选方案是虚化的 Insiders 封面照片，在主持人网址后加 `?bg=photo` 即可切换；封面原图只有约 660 像素宽，不虚化放大会糊。手机用洋红斜纹背景。
 - **倒计时音乐**：只在主持人电脑上播放，由浏览器现场合成，没有音乐文件、不占服务器。**每一题换一首传统圣诞歌**（均为公有领域）：Jingle Bells、Deck the Halls、We Wish You a Merry Christmas、God Rest Ye Merry Gentlemen、Good King Wenceslas、Joy to the World，按顺序轮换。编排成快节奏欢快的乐队：旋律，加上"嘭-嚓"鼓点、跳跃低音、反拍和弦和雪橇铃，速度每分钟 168～200 拍。最后 5 秒加入滴答声，时间到响蜂鸣，揭晓时安静。主持人如果提前按 Stop，音乐立即停止并响蜂鸣。按 **M** 静音。输出端装了限幅器，避免在场地音响上爆音。

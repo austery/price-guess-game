@@ -43,7 +43,7 @@
 | 倒计时 | **45 秒**（原定 15 秒；改成礼物篮后先改 30 秒，试玩后改为 45 秒） |
 | 总冠军并列 | 只让并列的桌加赛：① 最接近但不超过者赢；② 全部超价则最接近者赢；③ 仍然平局或都没作答，还平的桌再做下一道加赛题。最多 3 道，第 3 道还平才随机抽签。 |
 | 练习 | 正式比赛前练 2 轮（也是礼物篮），不计分，主持人可跳过 |
-| 规则页 | 照抄组织者的 5 条英文规则，加一条（粗体）："You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out." |
+| 规则页 | 组织者的规则精简成 4 条：① There are 5 baskets — guess the total price of the 3-6 items in each. ② The table that is closest to the total without going over wins that round! ③ The table with the most correct guesses wins a prize! ④ You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out. |
 | 价格标准 | 税前货架价，以 PC Insiders Report Holiday 2026 杂志上印的价格为准 |
 
 ## 4. 当前题目（来自 Holiday 2026 杂志）

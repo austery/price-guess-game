@@ -111,12 +111,10 @@
               : `<h1>You're in! 🎉</h1>`}
             <p class="muted">${view.introStep < 3 ? "You're in! Watch the big screen." : `${esc(roundLabel)} is about to start. Watch the big screen.`}</p>
             <ol style="padding-left:20px;margin:8px 0 0;line-height:1.5">
-              <li>There will be ${view.totalRounds} shopping baskets displayed.</li>
-              <li>Each basket is on an individual slide along with 3-6 items used to make that basket.</li>
-              <li>Your table will guess the price of all the items for that basket summed together.</li>
+              <li>There are ${view.totalRounds} baskets — guess the total price of the 3-6 items in each.</li>
               <li>The table that is closest to the total without going over wins that round!</li>
               <li>The table with the most correct guesses wins a prize!</li>
-              <li><strong>You have ${view.roundSeconds} seconds per basket. If you type it wrong, enter a new price before time runs out.</strong></li>
+              <li>You have ${view.roundSeconds} seconds per basket. If you type it wrong, enter a new price before time runs out.</li>
             </ol>
           </div>
           ${standingsMini()}

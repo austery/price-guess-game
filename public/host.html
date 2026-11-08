@@ -300,24 +300,24 @@
         </div>`;
     }
 
-    // The organisers' rule text, word for word (gold = key words), plus the re-entry rule as a banner.
-    function renderRules() {
+    // The organisers' rules, shortened (rules 1-3 merged into one line), plus the re-entry rule. Gold = key words.
+    function rulesText(rounds, seconds) {
       const g = (t) => `<b>${t}</b>`;
-      const rules = [
-        ["🧺", `There will be ${g(`${view.totalRounds} shopping baskets`)} displayed.`],
-        ["🛒", `Each basket is on an individual slide along with ${g("3-6 items")} used to make that basket.`],
-        ["➕", `Your table will guess the price of all the items for that basket ${g("summed together")}.`],
-        ["🎯", `The table that is closest to the total ${g("without going over")} wins that round!`],
-        ["🏆", `The table with the most correct guesses ${g("wins a prize!")}`],
+      return [
+        `There are ${g(`${rounds} baskets`)} — guess the ${g("total price")} of the 3-6 items in each.`,
+        `The table that is closest to the total ${g("without going over")} wins that round!`,
+        `The table with the most correct guesses ${g("wins a prize!")}`,
+        `You have ${g(`${seconds} seconds`)} per basket. If you type it wrong, enter a new price before time runs out.`,
       ];
+    }
+
+    function renderRules() {
       main.innerHTML = `
         <div class="rules fancy">
           <h1>The <span class="script">Rules</span></h1>
-          <ol>${rules.map(([icon, text], i) => `
-            <li><span class="r-num">${i + 1}</span><span class="r-icon">${icon}</span><span class="r-text">${text}</span></li>`).join("")}
+          <ol>${rulesText(view.totalRounds, view.roundSeconds).map((text, i) => `
+            <li><span class="r-num">${i + 1}</span><span class="r-text">${text}</span></li>`).join("")}
           </ol>
-          <div class="r-banner"><span class="r-icon">⏱️</span>
-            <span>You have ${view.roundSeconds} seconds per basket. If you type it wrong, enter a new price before time runs out.</span></div>
         </div>`;
     }
 
