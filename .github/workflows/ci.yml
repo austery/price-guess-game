@@ -15,7 +15,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - name: End-to-end simulation (15 phones x 5 rounds)
+      - name: End-to-end simulation (20 phones x 5 rounds)
         run: |
           cp .dev.vars.example .dev.vars
           npx wrangler dev --port 8787 --ip 127.0.0.1 > wrangler.log 2>&1 &
