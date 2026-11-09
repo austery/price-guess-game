@@ -110,7 +110,7 @@ describe("practice rounds", () => {
     playRound(s, 3);
     resetGame(s, true, cfg);
     expect([s.practiceRound, s.practiceDone, Object.keys(s.results).length]).toEqual([0, false, 0]);
-    expect(Object.keys(s.claims)).toHaveLength(15);
+    expect(Object.keys(s.claims)).toHaveLength(cfg.tables);
   });
 
   it("no practice configured -> starts directly at round 1", () => {

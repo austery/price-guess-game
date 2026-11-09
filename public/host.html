@@ -266,7 +266,10 @@
     function chips(highlightSubmitted, compact = false) {
       const claimed = new Set(view.claimedTables), online = new Set(view.connectedTables), sub = new Set(view.submittedTables);
       const shown = view.isTiebreak ? view.tiebreakTables : Array.from({ length: view.tables }, (_, i) => i + 1);
-      return `<div class="chips${compact ? " compact" : ""}">${shown.map((t) => {
+      // Compact row under a question: one line up to 15 tables, otherwise two even lines (20 -> 2 x 10).
+      // Join screen etc.: rows of 5 up to 15 tables, otherwise two even lines.
+      const cols = compact ? (shown.length <= 15 ? shown.length : Math.ceil(shown.length / 2)) : shown.length > 15 ? Math.ceil(shown.length / 2) : 5;
+      return `<div class="chips${compact ? " compact" : ""}" style="--chip-cols:${Math.max(cols, 1)}">${shown.map((t) => {
         const cls = ["chip", claimed.has(t) && "claimed", online.has(t) && "connected", highlightSubmitted && sub.has(t) && "submitted"].filter(Boolean).join(" ");
         return `<div class="${cls}" data-release="${claimed.has(t) ? t : ""}" title="${claimed.has(t) ? "Click to release this table" : ""}">${t}</div>`;
       }).join("")}</div>`;

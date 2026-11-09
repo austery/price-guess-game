@@ -166,7 +166,7 @@ describe("secrecy: true price never reaches clients before reveal", () => {
   });
 });
 
-describe("full game: 15 tables x 5 rounds", () => {
+describe("full game: every table x 5 rounds", () => {
   it("plays through to final standings", () => {
     const s = withAllTables();
     let now = T0;
@@ -174,9 +174,9 @@ describe("full game: 15 tables x 5 rounds", () => {
       expect(s.phase).toBe("waiting");
       start(s, cfg, now);
       const price = cfg.dishes[r].priceCents;
-      // table (r+1) bids exactly the price, table 15 always goes over by 1 cent, others are far under
+      // table (r+1) bids exactly the price, the last table always goes over by 1 cent, others are far under
       for (let t = 1; t <= cfg.tables; t++) {
-        const cents = t === r + 1 ? price : t === 15 ? price + 1 : Math.floor(price / 2);
+        const cents = t === r + 1 ? price : t === cfg.tables ? price + 1 : Math.floor(price / 2);
         submit(s, cfg, tok(t), (cents / 100).toFixed(2), now + 1000 + t);
       }
       now += cfg.roundSeconds * 1000 + 5_000;
@@ -189,7 +189,7 @@ describe("full game: 15 tables x 5 rounds", () => {
     const v = hostView(s, cfg, now, []);
     expect(v.leaders).toEqual([1, 2, 3, 4, 5]); // five different winners -> tie, rule pending
     expect(v.roundWinners.map((x) => x.winners)).toEqual([[1], [2], [3], [4], [5]]);
-    expect(v.standings.find((x) => x.table === 15)!.overBids).toBe(5);
+    expect(v.standings.find((x) => x.table === cfg.tables)!.overBids).toBe(5);
   });
 
   it("reset game keeps table claims", () => {
@@ -197,6 +197,6 @@ describe("full game: 15 tables x 5 rounds", () => {
     start(s, cfg, T0);
     resetGame(s);
     expect(s.phase).toBe("waiting");
-    expect(Object.keys(s.claims)).toHaveLength(15);
+    expect(Object.keys(s.claims)).toHaveLength(cfg.tables);
   });
 });

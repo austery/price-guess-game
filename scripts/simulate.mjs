@@ -1,4 +1,4 @@
-// End-to-end simulation: 1 host + 15 table phones over real WebSockets.
+// End-to-end simulation: 1 host + 20 table phones over real WebSockets.
 //
 //   npm run dev                         # in one terminal
 //   npm run simulate                    # in another (defaults to http://127.0.0.1:8787)
@@ -8,7 +8,7 @@
 
 const BASE = (process.env.BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const HOST_KEY = process.env.HOST_KEY || "dev-host-key";
-const TABLES = 15;
+const TABLES = 20;
 const WS_BASE = BASE.replace(/^http/, "ws");
 
 let failures = 0;
@@ -72,7 +72,7 @@ async function main() {
   host.send({ t: "resetGame", keepClaims: false });
   await host.waitFor((c) => c.view.claimedTables.length === 0 && c.view.phase === "waiting" && c.view.roundNumber === 1, 5000, "clean reset");
 
-  console.log("\n[join] 15 phones scan and pick a table");
+  console.log(`\n[join] ${TABLES} phones scan and pick a table`);
   const players = [];
   for (let t = 1; t <= TABLES; t++) {
     const p = new Client(`table${t}`, { role: "player", token: `sim-${t}-${crypto.randomUUID()}` });
@@ -81,7 +81,7 @@ async function main() {
   await Promise.all(players.map((p) => p.open()));
   players.forEach((p, i) => p.send({ t: "claim", table: i + 1 }));
   await host.waitFor((c) => c.view.claimedTables.length === TABLES && c.view.connectedTables.length === TABLES, 5000, "all joined");
-  ok(true, "host sees 15/15 tables joined and online");
+  ok(true, `host sees ${TABLES}/${TABLES} tables joined and online`);
 
   const intruder = new Client("intruder", { role: "player", token: `sim-x-${crypto.randomUUID()}` });
   await intruder.open();
@@ -120,7 +120,7 @@ async function main() {
     host.send({ t: "start" });
     await Promise.all(players.map((p) => p.waitFor((c) => c.view.phase === "open" && c.view.roundNumber === r, 5000, "open")));
     const spread = Math.max(...players.map((p) => p.viewAt)) - startedAt;
-    ok(true, `all 15 phones saw the dish within ${spread} ms`);
+    ok(true, `all ${TABLES} phones saw the dish within ${spread} ms`);
     ok(players.every((p) => p.view.dish && p.view.dish.image === undefined), "phones get dish text, no image");
     ok(players.every((p) => p.view.deadline - p.view.serverNow > p.view.questionSeconds * 1000 - 1000), `deadline is ~${players[0].view.questionSeconds} s ahead`);
 
@@ -132,7 +132,7 @@ async function main() {
       p.send({ t: "submit", price: i % 5 === 0 ? `$${s}` : i % 7 === 0 ? s.replace(".", ",") : s });
     }
     await host.waitFor((c) => c.view.submittedTables.length === TABLES, 5000, "all submitted");
-    ok(true, "host sees 15/15 answered");
+    ok(true, `host sees ${TABLES}/${TABLES} answered`);
 
     // Table 2 changes its mind.
     const revised = rnd(800, 4500);
