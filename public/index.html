@@ -44,11 +44,10 @@
       onState: (v) => { view = v; if (v.myTable) changingTable = false; render(); },
       onError: (e) => showNotice(e.message, "error"),
       onAck: () => {
-        // Clear the box once the server has the guess; the big "Your guess" number shows what counts.
+        // Clear the box once the server has the guess; the big "Your guess" number and the green note stay until time is up.
         draft = "";
         const input = document.getElementById("price");
         if (input) input.value = "";
-        showNotice("Submitted! You can change it until time's up.", "ok");
       },
       onStatus: (s) => {
         document.getElementById("dot").className = `status-dot ${s}`;
@@ -147,7 +146,9 @@
             </div>
             <button type="submit">${mine ? "Change" : "Submit"}</button>
           </form>
-          ${mine ? "" : `<div class="muted">${esc(view.guessPrompt)} Don't go over!</div>`}`;
+          ${mine
+            ? `<div class="notice ok" style="margin-top:12px">Submitted! You can change it until time's up.</div>`
+            : `<div class="muted">${esc(view.guessPrompt)} Don't go over!</div>`}`;
         const input = document.getElementById("price");
         input.value = draft;
         input.oninput = () => (draft = input.value);
