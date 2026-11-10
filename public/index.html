@@ -48,7 +48,7 @@
         draft = "";
         const input = document.getElementById("price");
         if (input) input.value = "";
-        if (!view?.myBid) showNotice("Submitted! You can change it until time's up.", "ok");
+        showNotice("Submitted! You can change it until time's up.", "ok");
       },
       onStatus: (s) => {
         document.getElementById("dot").className = `status-dot ${s}`;
