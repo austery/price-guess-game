@@ -40,7 +40,7 @@
 | 1 | 同一轮两桌报出相同的最高有效价 | 都得 1 分 | `rules.roundTie: "all-score"` |
 | 2 | 某一轮所有桌都超价 | 本轮无人得分 | — |
 | 3 | 倒计时内能否改价 | 可以，以最后一次为准 | `rules.allowResubmit` |
-| 4 | 手机上显示什么 | 名称 + 说明文字，不显示图片 | `rules.phoneShowsImage` |
+| 4 | 手机上显示什么 | 只有篮子名字和输入框；规则、商品、结果都在大屏上（见下方"手机画面"） | `public/index.html` |
 | 5 | 揭晓时是否公开每桌报价 | 全部公开，从高到低，超价标红 | `rules.revealAllBids` |
 | 6 | 界面语言 | 英文 | — |
 | 7 | 是否用 PPT | 不用，只用网页，排版由程序决定 | — |
@@ -54,7 +54,7 @@
 3. **规则页**：组织者的规则精简成 4 条，每条一行，带金色编号，只有第 2 条的 "without going over" 用金色：① There are 5 baskets. Guess the total price of all the items in each basket.（原第 1–3 条合并）② The table that is closest to the total without going over wins that round! ③ The table with the most correct guesses wins a prize! ④ You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out. 手机上显示同样的 4 条。
 4. 再按空格开始练习第 1 轮。
 
-开场时，手机上显示欢迎语和同样的 4 条规则。界面统一用 Holiday Insiders Report 风格：白字、金色价格、青柠绿标出赢家。
+开场时，手机上只显示 "You are Table 3"，规则只在大屏上讲。界面统一用 Holiday Insiders Report 风格：白字、金色价格、青柠绿标出赢家。
 
 - **大屏背景**：经典圣诞风格，用代码绘制，任何尺寸的屏幕都清晰。四种浓郁底色（品牌洋红、酒红、常青绿、午夜蓝）每换一屏轮换一种，配淡金色雪花、柔和光点和金色细边框。备选方案是虚化的 Insiders 封面照片，在主持人网址后加 `?bg=photo` 即可切换；封面原图只有约 660 像素宽，不虚化放大会糊。手机用洋红斜纹背景。
 - **倒计时音乐**：只在主持人电脑上播放，由浏览器现场合成，没有音乐文件、不占服务器。**每一题换一首传统圣诞歌**（均为公有领域）：Jingle Bells、Deck the Halls、We Wish You a Merry Christmas、God Rest Ye Merry Gentlemen、Good King Wenceslas、Joy to the World，按顺序轮换。编排成快节奏欢快的乐队：旋律，加上"嘭-嚓"鼓点、跳跃低音、反拍和弦和雪橇铃，速度每分钟 168～200 拍。最后 5 秒加入滴答声，时间到响蜂鸣，揭晓时安静。主持人如果提前按 Stop，音乐立即停止并响蜂鸣。按 **M** 静音。输出端装了限幅器，避免在场地音响上爆音。
@@ -64,7 +64,7 @@
 
 - 正式比赛前先玩 **2 轮练习**（`practice`），让大家熟悉扫码、输入、揭晓的流程。
 - 练习照常揭晓价格和"本来会赢的桌"，但**不计分**、不进排行榜。
-- 练习结束后，大屏和手机显示"Practice over — from now on it counts!"，然后进入正式第 1 轮。
+- 练习结束后，大屏显示"Practice over — from now on it counts!"，然后进入正式第 1 轮。
 - 主持人可以随时按 **Skip practice** 跳过剩下的练习，直接开始正式比赛。
 - 练习题数量可配置，`practice: []` 表示不练习。
 
@@ -77,7 +77,7 @@
 
 5 轮后如果两桌或以上并列第一（十几桌水平相近时约一半的机会），主持人按空格开始**加赛**：
 
-- 只有并列的桌参加，其他桌手机显示"观战"，不能作答。
+- 只有并列的桌参加，其他桌手机只显示 "You are Table N"，不能作答。
 - 最多 3 道加赛题（`tiebreakers`），同样 45 秒。
 - 判定顺序：
   1. 最接近但不超过者赢；
@@ -92,7 +92,7 @@
 
 - **玩法**：每一题是一个礼物篮。大屏显示篮子和篮子里每样商品的照片、数量，各桌猜**总价**，提示语为 "Guess the total shelf price of everything shown (before tax)."
 - **揭晓**分两页：第一页每件商品挂黄色价格吊牌，下面是 Excel 样式的计算表（商品、数量、单价、小计、总计）；主持人再按空格，显示各桌报价。
-- **手机**显示商品清单文字（数量 × 名称和规格），揭晓后显示计算表。
+- **手机画面**：手机只用来输入价格，其他内容（规则、商品、结果、排名、冠军）都只在大屏上显示，让全桌一起看大屏。手机画面：等待和轮与轮之间显示 "You are Table 3"；出题时只有篮子名字、倒计时和输入框（提交后显示 "Your guess" 和绿色提示，时间到之前可以 Change）；时间到和揭晓时显示 "Time's up!" 和这桌最后提交的价格；游戏结束显示 "Thank you for participating. Have a good holiday!"。
 - **商品库**：杂志里有价格、有图片的 98 个商品都在 `CATALOG` 里（`src/magazine.ts` 是从杂志自动生成的，`src/config.ts` 里的 16 个用的是之前幻灯片里更清晰的图）。每个商品的 ID 见 `preview-baskets/product-ids-*.png`（不提交）和 Excel 表。
 - **组篮子**：在 `src/config.ts` 里写 `basket("名字", [["商品ID", 数量], ...])`，总价自动相加。可选 `{ seconds: 20 }` 给这一题单独设倒计时，`{ hero: "/items/xxx.jpg" }` 换成一张真实的整篮照片。
 - **单价只在揭晓时**才从服务器发出；商品图片都检查过，图里没有价格。
