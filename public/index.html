@@ -43,7 +43,13 @@
       params: { role: "player", token },
       onState: (v) => { view = v; if (v.myTable) changingTable = false; render(); },
       onError: (e) => showNotice(e.message, "error"),
-      onAck: () => showNotice("Submitted! You can change it until time's up.", "ok"),
+      onAck: () => {
+        // Clear the box once the server has the guess; the big "Your guess" number shows what counts.
+        draft = "";
+        const input = document.getElementById("price");
+        if (input) input.value = "";
+        if (!view?.myBid) showNotice("Submitted! You can change it until time's up.", "ok");
+      },
       onStatus: (s) => {
         document.getElementById("dot").className = `status-dot ${s}`;
         document.getElementById("status").textContent = s === "online" ? "Connected" : s === "connecting" ? "Connecting…" : "Reconnecting…";
@@ -134,13 +140,14 @@
             ${view.dish?.images?.[0] ? `<img src="${esc(view.dish.images[0])}" alt="" style="width:100%;border-radius:10px;margin-top:8px;background:#fff">` : ""}
             <ul class="ingredients">${(view.dish?.ingredients ?? []).map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
           </div>
+          ${mine ? `<div class="my-guess">Your guess <strong class="price">${mine}</strong></div>` : ""}
           <form class="bid-form" id="bid" autocomplete="off">
             <div class="input-wrap"><span>$</span>
               <input id="price" inputmode="decimal" enterkeyhint="send" placeholder="0.00" aria-label="Your price guess" />
             </div>
-            <button type="submit">${mine ? "Update" : "Submit"}</button>
+            <button type="submit">${mine ? "Change" : "Submit"}</button>
           </form>
-          <div class="muted" id="mine">${mine ? `Your table's guess: <strong class="price">${mine}</strong>` : `${esc(view.guessPrompt)} Don't go over!`}</div>`;
+          ${mine ? "" : `<div class="muted">${esc(view.guessPrompt)} Don't go over!</div>`}`;
         const input = document.getElementById("price");
         input.value = draft;
         input.oninput = () => (draft = input.value);
