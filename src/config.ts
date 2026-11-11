@@ -312,12 +312,12 @@ export const GAME_CONFIG: GameConfig = {
       ["shirley-temple-soda", 1],
     ]), // $35.00
     basket("Christmas Morning Brunch", [
-      ["ceraware-skillet-small", 1],
+      ["sous-chef-crispy-wedges", 1],
       ["juice-shots", 1],
       ["protein-muffins-banana-chocolate-chip", 1],
       ["protein-granola-maple-cinnamon-crunch", 1],
       ["probiotic-yogurt", 1],
-    ]), // $42.50
+    ]), // $29.50
     basket("Hostess Gift Bag", [
       ["toner-pads-glow-and-behold-brightening", 1],
       ["butter-tart-pie", 1],
