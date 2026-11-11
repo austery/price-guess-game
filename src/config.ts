@@ -253,14 +253,14 @@ export const GAME_CONFIG: GameConfig = {
       ["sourdough-focaccia-parmesan-and-caramelized-onion", 1],
       ["sourdough-crisps-sea-salt", 1],
       ["sourdough-crisps-garlic-and-herb", 1],
-    ]), // $18.50 (cheap)
-    basket("Holiday Mains Basket", [
-      ["salmon-wellington", 1],
-      ["swedish-beef-meatballs", 1],
-      ["cottage-roast", 1],
-      ["charcuteria-meats", 1],
-      ["orange-chicken", 1],
-    ]), // $82.00 (expensive)
+    ]), // $18.50
+    basket("Holiday Movie Night", [
+      ["milk-chocolate-truffles", 1],
+      ["black-label-pinsa", 1],
+      ["candy-cane-ice-cream", 1],
+      ["rice-cakes-mango", 1],
+      ["shirley-temple-soda", 1],
+    ]), // $35.00
   ],
   // Real rounds: as many rounds as baskets listed here. Totals jump around so nobody can just
   // write "about $40" every time.
@@ -273,13 +273,13 @@ export const GAME_CONFIG: GameConfig = {
       ["gochujang-caramel-popcorn", 1],
       ["pepperoni-pizza-chips", 1],
     ]), // $41.00
-    basket("Holiday Movie Night", [
-      ["milk-chocolate-truffles", 1],
-      ["black-label-pinsa", 1],
-      ["candy-cane-ice-cream", 1],
-      ["rice-cakes-mango", 1],
-      ["shirley-temple-soda", 1],
-    ]), // $35.00
+    basket("Holiday Mains Basket", [
+      ["salmon-wellington", 1],
+      ["swedish-beef-meatballs", 1],
+      ["cottage-roast", 1],
+      ["charcuteria-meats", 1],
+      ["orange-chicken", 1],
+    ]), // $82.00
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
