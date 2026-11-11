@@ -108,6 +108,8 @@ async function main() {
       "practice round reveals a winner (table 7) but nobody gets a point");
     host.send({ t: "skipPractice" });
     await host.waitFor((c) => !c.view.isPractice && c.view.practiceDone && c.view.phase === "waiting" && c.view.roundNumber === 1, 3000, "skip");
+    // Phones get the update a moment after the host does: wait for every phone before checking.
+    await Promise.all(players.map((p) => p.waitFor((c) => !c.view.isPractice, 3000, "phone left practice")));
     ok(players.every((p) => p.view.myBid === null), "after practice, round 1 starts clean (no leftover guesses)");
   }
 
