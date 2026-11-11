@@ -254,12 +254,13 @@ export const GAME_CONFIG: GameConfig = {
       ["sourdough-crisps-sea-salt", 1],
       ["sourdough-crisps-garlic-and-herb", 1],
     ]), // $18.50 (cheap)
-    basket("Pampered Pets Basket", [
-      ["dog-food-digestive", 1],
-      ["dog-food-skin-coat", 1],
-      ["dog-food-mobility", 1],
-      ["cat-food", 1],
-    ]), // $104.00 (expensive)
+    basket("Holiday Mains Basket", [
+      ["salmon-wellington", 1],
+      ["swedish-beef-meatballs", 1],
+      ["cottage-roast", 1],
+      ["charcuteria-meats", 1],
+      ["orange-chicken", 1],
+    ]), // $82.00 (expensive)
   ],
   // Real rounds: as many rounds as baskets listed here. Totals jump around so nobody can just
   // write "about $40" every time.
