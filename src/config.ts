@@ -303,26 +303,27 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
-    basket("Chocolate Lover's Basket", [
+    // Harder on purpose: mixed categories, cheap next to expensive, odd cents.
+    basket("Holiday Movie Night", [
       ["milk-chocolate-truffles", 1],
-      ["rice-cakes-milk-chocolate-caramel", 1],
-      ["rice-cakes-dark-chocolate-raspberry", 1],
-      ["choc-almonds-milk-chocolate", 1],
-      ["choc-almonds-dark-chocolate", 1],
+      ["black-label-pinsa", 1],
       ["candy-cane-ice-cream", 1],
-    ]), // $31.50
-    basket("Holiday Sweets Basket", [
+      ["rice-cakes-mango", 1],
+      ["shirley-temple-soda", 1],
+    ]), // $35.00
+    basket("Christmas Morning Brunch", [
+      ["ceraware-skillet-small", 1],
+      ["juice-shots", 1],
+      ["protein-muffins-banana-chocolate-chip", 1],
+      ["protein-granola-maple-cinnamon-crunch", 1],
+      ["probiotic-yogurt", 1],
+    ]), // $42.50
+    basket("Hostess Gift Bag", [
+      ["toner-pads-glow-and-behold-brightening", 1],
       ["butter-tart-pie", 1],
-      ["eggnog-ice-cream", 1],
-      ["tiramisu-ice-cream-bars", 1],
-      ["santas-ice-cream", 1],
-      ["ajwa-whole-dates", 1],
-    ]), // $34.50
-    basket("Pasta Night Basket", [
-      ["bolognese-ravioli", 1],
-      ["burrata-ravioli", 1],
-      ["solerama-tomatoes", 1],
-      ["truffle-ricotta-gnocchi", 1],
-    ]), // $24.00
+      ["raspberry-hibiscus-sparkling-water", 1],
+      ["rice-cakes-mixed-berry", 1],
+      ["choc-almonds-dark-chocolate", 1],
+    ]), // $45.75
   ],
 };
