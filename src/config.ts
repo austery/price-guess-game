@@ -265,6 +265,13 @@ export const GAME_CONFIG: GameConfig = {
   // Real rounds: as many rounds as baskets listed here. Totals jump around so nobody can just
   // write "about $40" every time.
   dishes: [
+    basket("Holiday Mains Basket", [
+      ["salmon-wellington", 1],
+      ["swedish-beef-meatballs", 1],
+      ["cottage-roast", 1],
+      ["charcuteria-meats", 1],
+      ["orange-chicken", 1],
+    ]), // $82.00
     basket("Holiday Party Snacks", [
       ["beef-wellie-bites", 1],
       ["fish-chips-stacks", 1],
@@ -273,13 +280,6 @@ export const GAME_CONFIG: GameConfig = {
       ["gochujang-caramel-popcorn", 1],
       ["pepperoni-pizza-chips", 1],
     ]), // $41.00
-    basket("Holiday Mains Basket", [
-      ["salmon-wellington", 1],
-      ["swedish-beef-meatballs", 1],
-      ["cottage-roast", 1],
-      ["charcuteria-meats", 1],
-      ["orange-chicken", 1],
-    ]), // $82.00
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
@@ -304,7 +304,7 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
-    // Mixed categories, cheap next to expensive, odd cents; the bakery basket is the easy last resort.
+    // Hard on purpose: mixed categories, cheap next to expensive, odd cents.
     basket("Christmas Morning Brunch", [
       ["sous-chef-crispy-wedges", 1],
       ["juice-shots", 1],
@@ -319,11 +319,13 @@ export const GAME_CONFIG: GameConfig = {
       ["rice-cakes-mixed-berry", 1],
       ["choc-almonds-dark-chocolate", 1],
     ]), // $45.75
-    basket("Bakery Basket", [
-      ["sourdough-focaccia-rosemary-sea-salt", 1],
-      ["sourdough-baguette", 1],
-      ["garlic-pull-aparts", 1],
-      ["all-butter-croissants", 1],
-    ]), // $18.00
+    basket("Snow Day Basket", [
+      ["faux-fur-earmuffs", 1],
+      ["thai-chicken", 1],
+      ["lactose-free-cheese-mac-and-cheese", 1],
+      ["tiramisu-ice-cream-bars", 1],
+      ["eggnog-ice-cream", 1],
+      ["choc-almonds-milk-chocolate", 1],
+    ]), // $44.50
   ],
 };
