@@ -248,14 +248,14 @@ export const GAME_CONFIG: GameConfig = {
   // Practice (doesn't count): two baskets so everyone learns how it works.
   // One of each item: tables guess each product's price, no multiplying (time is short).
   practice: [
-    basket("Holiday Party Snacks", [
-      ["beef-wellie-bites", 1],
-      ["fish-chips-stacks", 1],
-      ["bombas", 1],
-      ["shrimp-chips", 1],
-      ["gochujang-caramel-popcorn", 1],
-      ["pepperoni-pizza-chips", 1],
-    ]), // $41.00
+    basket("Soup Night Basket", [
+      ["lobster-bisque", 1],
+      ["tomato-basil-bisque", 1],
+      ["thai-chicken", 1],
+      ["beef-chili", 1],
+      ["loaded-baked-potato", 1],
+      ["sourdough-crisps-sea-salt", 1],
+    ]), // $40.50
     basket("Holiday Sweets Basket", [
       ["butter-tart-pie", 1],
       ["eggnog-ice-cream", 1],
@@ -266,20 +266,20 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Real rounds: as many rounds as baskets listed here.
   dishes: [
-    basket("Soup Night Basket", [
-      ["lobster-bisque", 1],
-      ["tomato-basil-bisque", 1],
-      ["thai-chicken", 1],
-      ["beef-chili", 1],
-      ["loaded-baked-potato", 1],
-      ["sourdough-crisps-sea-salt", 1],
-    ]), // $40.50
-    basket("Pampered Pets Basket", [
-      ["dog-food-digestive", 1],
-      ["dog-food-skin-coat", 1],
-      ["dog-food-mobility", 1],
-      ["cat-food", 1],
-    ]), // $104.00
+    basket("Holiday Party Snacks", [
+      ["beef-wellie-bites", 1],
+      ["fish-chips-stacks", 1],
+      ["bombas", 1],
+      ["shrimp-chips", 1],
+      ["gochujang-caramel-popcorn", 1],
+      ["pepperoni-pizza-chips", 1],
+    ]), // $41.00
+    basket("Favourite Things Gift Box", [
+      ["hand-cream-trio", 1],
+      ["epsom-salts", 1],
+      ["acne-patches", 1],
+      ["toner-pads-cica-chic-soothing", 1],
+    ]), // $47.00
     basket("Cheese Board", [
       ["goat-cheese-pack", 1],
       ["amarena-goat-cheese", 1],
@@ -313,12 +313,12 @@ export const GAME_CONFIG: GameConfig = {
       ["ceraware-skillet", 1],
       ["tidystack-containers", 1],
     ]), // $130.00
-    basket("Favourite Things Gift Box", [
-      ["hand-cream-trio", 1],
-      ["epsom-salts", 1],
-      ["acne-patches", 1],
-      ["toner-pads-cica-chic-soothing", 1],
-    ]), // $47.00
+    basket("Pampered Pets Basket", [
+      ["dog-food-digestive", 1],
+      ["dog-food-skin-coat", 1],
+      ["dog-food-mobility", 1],
+      ["cat-food", 1],
+    ]), // $104.00
     basket("Pasta Night Basket", [
       ["bolognese-ravioli", 1],
       ["burrata-ravioli", 1],

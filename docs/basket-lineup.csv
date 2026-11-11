@@ -1,11 +1,11 @@
 ﻿Slot,Basket,Item,Size,"Price (CAD, before tax)"
-Practice 1,Holiday Party Snacks,PC® Beef Wellie Bites,288 g,10.00
-Practice 1,Holiday Party Snacks,PC® The Chip Shop Fish and Chips Stacks,270 g,10.00
-Practice 1,Holiday Party Snacks,PC® Bombas,240 g,7.00
-Practice 1,Holiday Party Snacks,T&T® Garlic Butter Shrimp Chips,240 g,7.00
-Practice 1,Holiday Party Snacks,PC® Gochujang-Caramel Popcorn,220 g,4.00
-Practice 1,Holiday Party Snacks,PC® World of Flavours Pepperoni Pizza Flavour Potato Chips,200 g,3.00
-Practice 1,Holiday Party Snacks,TOTAL,,41.00
+Practice 1,Soup Night Basket,PC® Lobster Bisque,700 mL,7.50
+Practice 1,Soup Night Basket,PC® Slow Simmered Tomato Basil Bisque Soup,700 ml,7.50
+Practice 1,Soup Night Basket,PC® Thai Chicken,700 mL,7.50
+Practice 1,Soup Night Basket,PC® Slow Simmered Beef Chili,700 g,7.50
+Practice 1,Soup Night Basket,PC® Loaded Baked Potato,700 mL,7.50
+Practice 1,Soup Night Basket,PC® Sourdough Crisps Sea Salt,142 g,3.00
+Practice 1,Soup Night Basket,TOTAL,,40.50
 
 Practice 2,Holiday Sweets Basket,PC® Our Ultimate Butter-Tart Pie with Canadian Cranberries,497 g,10.00
 Practice 2,Holiday Sweets Basket,PC® Black Label Eggnog Ice Cream,500 mL,4.50
@@ -14,19 +14,19 @@ Practice 2,Holiday Sweets Basket,PC® Scoop Shop Santa's Milk and Cookies Ice Cr
 Practice 2,Holiday Sweets Basket,PC® Ajwa Whole Dates,400 g,10.00
 Practice 2,Holiday Sweets Basket,TOTAL,,34.50
 
-Round 1,Soup Night Basket,PC® Lobster Bisque,700 mL,7.50
-Round 1,Soup Night Basket,PC® Slow Simmered Tomato Basil Bisque Soup,700 ml,7.50
-Round 1,Soup Night Basket,PC® Thai Chicken,700 mL,7.50
-Round 1,Soup Night Basket,PC® Slow Simmered Beef Chili,700 g,7.50
-Round 1,Soup Night Basket,PC® Loaded Baked Potato,700 mL,7.50
-Round 1,Soup Night Basket,PC® Sourdough Crisps Sea Salt,142 g,3.00
-Round 1,Soup Night Basket,TOTAL,,40.50
+Round 1,Holiday Party Snacks,PC® Beef Wellie Bites,288 g,10.00
+Round 1,Holiday Party Snacks,PC® The Chip Shop Fish and Chips Stacks,270 g,10.00
+Round 1,Holiday Party Snacks,PC® Bombas,240 g,7.00
+Round 1,Holiday Party Snacks,T&T® Garlic Butter Shrimp Chips,240 g,7.00
+Round 1,Holiday Party Snacks,PC® Gochujang-Caramel Popcorn,220 g,4.00
+Round 1,Holiday Party Snacks,PC® World of Flavours Pepperoni Pizza Flavour Potato Chips,200 g,3.00
+Round 1,Holiday Party Snacks,TOTAL,,41.00
 
-Round 2,Pampered Pets Basket,PC® Nutrition First Digestive Care Dry Dog Food,7 kg,30.00
-Round 2,Pampered Pets Basket,PC® Nutrition First Skin & Coat Care Dry Dog Food,7 kg,30.00
-Round 2,Pampered Pets Basket,PC® Nutrition First Mobility Care Dog Food,7 kg,30.00
-Round 2,Pampered Pets Basket,PC® Nutrition First Digestive Care Cat Food,2 kg,14.00
-Round 2,Pampered Pets Basket,TOTAL,,104.00
+Round 2,Favourite Things Gift Box,Life Brand™ Winter Glow Hand Cream Trio,3 x 30 mL,7.00
+Round 2,Favourite Things Gift Box,Life Brand™ Cranberry Citrus Twist Epsom Salts with Mineral Salt,1 kg,7.00
+Round 2,Favourite Things Gift Box,Life Brand™ Acne Oil-Absorbing Patches,,8.00
+Round 2,Favourite Things Gift Box,Life Brand™ Toner Pads – Cica Chic Soothing,,25.00
+Round 2,Favourite Things Gift Box,TOTAL,,47.00
 
 Round 3,Cheese Board,PC® The G.O.A.T. Soft Fresh Goat's Cheeses Variety Pack,420 g,12.00
 Round 3,Cheese Board,PC® Amarena Cherry Soft Fresh Goat's Cheese,140 g,6.00
@@ -58,11 +58,11 @@ Tiebreaker 1,Kitchen & Home Basket,PC® CeraWare Ceramic Non-Stick Cast Aluminum
 Tiebreaker 1,Kitchen & Home Basket,PC® TidyStack Glass Containers,3 pack,20.00
 Tiebreaker 1,Kitchen & Home Basket,TOTAL,,130.00
 
-Tiebreaker 2,Favourite Things Gift Box,Life Brand™ Winter Glow Hand Cream Trio,3 x 30 mL,7.00
-Tiebreaker 2,Favourite Things Gift Box,Life Brand™ Cranberry Citrus Twist Epsom Salts with Mineral Salt,1 kg,7.00
-Tiebreaker 2,Favourite Things Gift Box,Life Brand™ Acne Oil-Absorbing Patches,,8.00
-Tiebreaker 2,Favourite Things Gift Box,Life Brand™ Toner Pads – Cica Chic Soothing,,25.00
-Tiebreaker 2,Favourite Things Gift Box,TOTAL,,47.00
+Tiebreaker 2,Pampered Pets Basket,PC® Nutrition First Digestive Care Dry Dog Food,7 kg,30.00
+Tiebreaker 2,Pampered Pets Basket,PC® Nutrition First Skin & Coat Care Dry Dog Food,7 kg,30.00
+Tiebreaker 2,Pampered Pets Basket,PC® Nutrition First Mobility Care Dog Food,7 kg,30.00
+Tiebreaker 2,Pampered Pets Basket,PC® Nutrition First Digestive Care Cat Food,2 kg,14.00
+Tiebreaker 2,Pampered Pets Basket,TOTAL,,104.00
 
 Tiebreaker 3,Pasta Night Basket,PC® Black Label Ragù alla Bolognese Ravioli Grandi,250 g,7.00
 Tiebreaker 3,Pasta Night Basket,PC® Black Label Tomato & Burrata Ravioli Grandi,250 g,7.00

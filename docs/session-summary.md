@@ -49,15 +49,15 @@
 
 | 用途 | 篮子 | 内容（每样 1 件） | 总价 |
 |---|---|---|---|
-| 练习 1 | Holiday Party Snacks（开胃小吃） | Beef Wellie Bites、Fish & Chips Stacks、Bombas、T&T 虾片、韩式焦糖爆米花、意式辣肠披萨味薯片 | $41.00 |
+| 练习 1 | Soup Night Basket（汤） | 龙虾汤、番茄汤、泰式鸡汤、牛肉辣酱、烤土豆汤、酸面包脆片 | $40.50 |
 | 练习 2 | Holiday Sweets Basket（冰淇淋甜品） | 黄油挞派、蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋、椰枣 | $34.50 |
-| 第 1 轮 | Soup Night Basket（汤） | 龙虾汤、番茄汤、泰式鸡汤、牛肉辣酱、烤土豆汤、酸面包脆片 | $40.50 |
-| 第 2 轮 | Pampered Pets Basket（宠物食品） | 3 种狗粮、猫粮 | $104.00 |
+| 第 1 轮 | Holiday Party Snacks（开胃小吃） | Beef Wellie Bites、Fish & Chips Stacks、Bombas、T&T 虾片、韩式焦糖爆米花、意式辣肠披萨味薯片 | $41.00 |
+| 第 2 轮 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
 | 第 3 轮 | Cheese Board（奶酪） | G.O.A.T. 羊奶酪组合、樱桃羊奶酪、White Fox、Isle of Man 切达、无乳糖马苏里拉、无乳糖奶酪条 | $46.50 |
 | 第 4 轮 | Bakery Basket（面包） | 迷迭香佛卡夏、橄榄佛卡夏、酸面包法棍、蒜香手撕包、黄油可颂、香蕉巧克力蛋白松饼 | $29.00 |
 | 第 5 轮 | Chocolate Lover's Basket（巧克力） | 比利时松露巧克力、2 种巧克力米饼、2 种巧克力杏仁、拐杖糖巧克力冰淇淋 | $31.50 |
 | 加赛 1 | Kitchen & Home Basket（厨房家居） | 大号相思木拼盘板、蜂巢烤盘、CeraWare 不粘煎锅 11.5"、TidyStack 玻璃保鲜盒 | $130.00 |
-| 加赛 2 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
+| 加赛 2 | Pampered Pets Basket（宠物食品） | 3 种狗粮、猫粮 | $104.00 |
 | 加赛 3 | Pasta Night Basket | 博洛尼亚肉酱饺、布拉塔饺、Solerama 番茄、松露乳清干酪团子 | $24.00 |
 
 **数据来源**：从杂志 PDF（39 页）抽出全部 115 个商品，其中 98 个有图片，已放进游戏商品库（Isle of Man 和 Bombas 的图是从拼盘照片裁的）。所有商品和价格都来自 PDF，没有从商店网站抓取。全部商品按类别排的清单见 `docs/Holiday-2026-All-Products-and-Baskets.pdf`（英文，可在公司内部分享）；10 个篮子的清单另有英文 CSV：`docs/basket-lineup.csv`。完整清单（含杂志页码、SKU、游戏 ID）在 `preview-baskets/holiday-products-and-baskets.xlsx`，商品图鉴在 `preview-baskets/product-ids-*.png`。`preview-baskets/` 只在 Claude 的云端环境里，不上传 GitHub；需要的话请 Claude 重新生成。
@@ -115,6 +115,7 @@ basket("Soup Night Basket", [
 - [ ] **在活动现场实测网络**：用几部手机扫码、作答，确认场地 Wi-Fi 或手机流量能用。程序解决不了网络问题，建议准备纸卡作为后备。
 - [ ] 主持人电脑接上投影和音响，打开声音，按空格开始后确认能听到音乐。
 - [ ] 准备好主持人密钥。
+- [ ] 把后备 PowerPoint（`docs/Guess-the-Price-Backup-Slides.pptx`）存到主持人电脑和一个 U 盘里，再准备纸和笔；万一网站用不了，就各桌写价格举牌。
 - [ ] 彩排完再 Reset game 一次（第二个确认框选 OK），否则正式开始时各桌已经被占用。
 - [ ] 每桌指定一个人负责手机输入。
 
@@ -159,6 +160,7 @@ basket("Soup Night Basket", [
 | 11/10 | 手机作答：提交后输入框清空，上方用大号金色数字显示 "Your guess"，按钮从 Submit 变成 Change，改价格后大数字直接更新；提交后输入框下方一直显示绿色提示 "Submitted! You can change it until time's up."，直到时间到 |
 | 11/10 | 手机只用来输入：去掉规则、商品清单、每轮结果和排行榜，全部看大屏；游戏结束时手机显示 "Thank you for participating. Have a good holiday!" |
 | 11/11 | 同事试玩反馈：揭晓改成一页，去掉 Excel 计算表；商品价格吊牌、总价、赢家和各桌报价一起显示，少按一次空格 |
+| 11/11 | 汤篮（5 种汤同价，太简单）和开胃小吃对调，汤改为练习 1；宠物食品（3 种狗粮同价）和 Life Brand 礼盒对调，礼盒改为第 2 轮；做了一份纸笔玩法的后备 PowerPoint |
 
 ## 13. 主要文件
 
@@ -176,6 +178,7 @@ basket("Soup Night Basket", [
 | `docs/spec.md` | 详细需求说明 |
 | `docs/basket-lineup.csv` | 10 个篮子的商品和价格（英文） |
 | `docs/Holiday-2026-All-Products-and-Baskets.pdf` | 杂志全部商品和 10 个篮子（英文，可分享） |
+| `docs/Guess-the-Price-Backup-Slides.pptx` | 后备 PowerPoint（服务器或电脑出问题时用纸笔玩）：欢迎、规则、每个篮子一页题目一页答案、感谢页 |
 | `docs/session-log/` | 按 session-summary 技能格式写的会话日志、交接说明和保存用的 JSON |
 
 ## 14. 回顾
