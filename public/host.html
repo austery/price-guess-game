@@ -450,8 +450,8 @@
       const headline = view.isTiebreak
         ? tiebreakHeadline(r) + sub(tiebreakHow(r))
         : view.isPractice
-          ? (r.winners.length ? `🏆 Table ${r.winners.join(" & ")} would have won!` : "Everyone went over — no winner.") + sub("Practice — doesn't count.")
-          : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
+          ? (r.winners.length ? `🏆 Table ${r.winners.join(" & ")} would have won!` : noWinner(r)) + sub("Practice — doesn't count.")
+          : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : noWinner(r);
       // Up to 12 guesses: rows of up to 6, big digits. More: two dense rows (20 tables -> 2 x 10).
       const n = r.entries.length;
       const dense = n > 12;
@@ -468,9 +468,12 @@
             <div class="g ${e.winner ? "win" : e.over ? "over" : ""}">
               <div class="g-t">Table ${e.table}${e.over ? ` <span class="tag">OVER</span>` : ""}</div>
               <div class="g-p price">${formatCents(e.cents)}</div>
-            </div>`).join("")}</div>` : `<div class="muted br-sub">No guesses this round.</div>`}
+            </div>`).join("")}</div>` : ""}
         </div>`;
     }
+
+    // No winner: either nobody answered, or every guess went over.
+    const noWinner = (r) => (r.entries.length ? "Everyone went over — no winner this round." : "No guesses this round.");
 
     function tiebreakHeadline(r) {
       return r.decidedBy === "again"
@@ -505,8 +508,8 @@
       const headline = view.isTiebreak
         ? `${tiebreakHeadline(r)}<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
         : view.isPractice
-          ? (r.winners.length ? `Table ${r.winners.join(" & ")} would have won!` : "Everyone went over!") + practiceNote
-        : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
+          ? (r.winners.length ? `Table ${r.winners.join(" & ")} would have won!` : noWinner(r)) + practiceNote
+        : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : noWinner(r);
       main.innerHTML = `
         <div class="reveal">
           <div>

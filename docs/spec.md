@@ -101,16 +101,18 @@
 
 | 用途 | 篮子 | 内容（每样 1 件） | 总价 |
 |---|---|---|---|
-| 练习 1 | Soup Night Basket（汤） | 龙虾汤、番茄汤、泰式鸡汤、牛肉辣酱、烤土豆汤、酸面包脆片 | $40.50 |
-| 练习 2 | Holiday Sweets Basket（冰淇淋甜品） | 黄油挞派、蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋、椰枣 | $34.50 |
+| 练习 1（便宜） | Soup Night Basket（汤） | 龙虾汤、帕玛森焦糖洋葱佛卡夏、2 种酸面包脆片 | $18.50 |
+| 练习 2（贵） | Pampered Pets Basket（宠物食品） | 3 种狗粮、猫粮 | $104.00 |
 | 第 1 轮 | Holiday Party Snacks（开胃小吃） | Beef Wellie Bites、Fish & Chips Stacks、Bombas、T&T 虾片、韩式焦糖爆米花、意式辣肠披萨味薯片 | $41.00 |
-| 第 2 轮 | Favourite Things Gift Box | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片 | $47.00 |
-| 第 3 轮 | Cheese Board（奶酪） | G.O.A.T. 羊奶酪组合、樱桃羊奶酪、White Fox、Isle of Man 切达、无乳糖马苏里拉、无乳糖奶酪条 | $46.50 |
-| 第 4 轮 | Bakery Basket（面包） | 迷迭香佛卡夏、橄榄佛卡夏、酸面包法棍、蒜香手撕包、黄油可颂、香蕉巧克力蛋白松饼 | $29.00 |
-| 第 5 轮 | Chocolate Lover's Basket（巧克力） | 比利时松露巧克力、2 种巧克力米饼、2 种巧克力杏仁、拐杖糖巧克力冰淇淋 | $31.50 |
-| 加赛 1 | Kitchen & Home Basket（厨房家居） | 大号相思木拼盘板、蜂巢烤盘、CeraWare 不粘煎锅 11.5"、TidyStack 玻璃保鲜盒 | $130.00 |
-| 加赛 2 | Pampered Pets Basket（宠物食品） | 3 种狗粮、猫粮 | $104.00 |
-| 加赛 3 | Pasta Night Basket | 博洛尼亚肉酱饺、布拉塔饺、Solerama 番茄、松露乳清干酪团子 | $24.00 |
+| 第 2 轮 | Bakery Basket（面包） | 迷迭香佛卡夏、酸面包法棍、蒜香手撕包、黄油可颂 | $18.00 |
+| 第 3 轮 | Favourite Things Gift Box（Life Brand 礼盒） | 护手霜三件套、浴盐、痘痘贴、Cica 爽肤棉片、保湿眼膜 | $72.00 |
+| 第 4 轮 | Cheese Board（奶酪） | G.O.A.T. 羊奶酪组合、樱桃羊奶酪、White Fox、Isle of Man 切达、无乳糖马苏里拉、无乳糖奶酪条 | $46.50 |
+| 第 5 轮 | Kitchen & Home Basket（厨房家居） | 大号相思木拼盘板、蜂巢烤盘、CeraWare 不粘煎锅 11.5"、TidyStack 玻璃保鲜盒 | $130.00 |
+| 加赛 1 | Chocolate Lover's Basket（巧克力） | 比利时松露巧克力、2 种巧克力米饼、2 种巧克力杏仁、拐杖糖巧克力冰淇淋 | $31.50 |
+| 加赛 2 | Holiday Sweets Basket（冰淇淋甜品） | 黄油挞派、蛋酒冰淇淋、提拉米苏雪糕、圣诞老人牛奶饼干冰淇淋、椰枣 | $34.50 |
+| 加赛 3 | Pasta Night Basket（意面） | 博洛尼亚肉酱饺、布拉塔饺、Solerama 番茄、松露乳清干酪团子 | $24.00 |
+
+总价故意拉开（练习 $18.50 / $104；正式 $41 → $18 → $72 → $46.50 → $130），这样大家没法每轮随手写个"40 块左右"，只能认真看每样东西。
 
 Joe Fresh 服装没有做篮子：杂志的服装照片是整套搭配（毛衣配裤子、靴子），和单件商品对不上。Isle of Man 和 Bombas 杂志上没有单独的包装图，图片是从杂志的拼盘照片里裁出来的。
 

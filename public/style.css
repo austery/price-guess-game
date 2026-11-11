@@ -248,7 +248,8 @@ body.bar-hidden .screen-main { padding-bottom: 2vw; }
 .basket-r .part .p-tag { bottom: .4vw; }
 .basket-r .winner { font-size: 2.6vw; font-weight: 800; color: var(--good); text-align: center; margin-top: .4vw; }
 .br-sub { font-size: 1.5vw; font-weight: 400; color: var(--muted); }
-.guesses { display: grid; grid-template-columns: repeat(var(--g-cols, 6), 1fr); gap: .8vw; }
+.guesses { display: grid; grid-template-columns: repeat(var(--g-cols, 6), minmax(0, 14vw)); justify-content: center; gap: .8vw; }
+.guesses.dense { grid-template-columns: repeat(var(--g-cols, 10), minmax(0, 1fr)); }
 .guesses .g { background: rgba(0,0,0,.28); border-radius: .8vw; padding: .6vw .8vw; text-align: center; }
 .guesses .g-t { font-size: 1.4vw; font-weight: 600; color: var(--muted); }
 .guesses .g-p { font-size: 2.3vw; font-weight: 800; }

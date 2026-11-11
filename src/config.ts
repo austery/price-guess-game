@@ -250,21 +250,19 @@ export const GAME_CONFIG: GameConfig = {
   practice: [
     basket("Soup Night Basket", [
       ["lobster-bisque", 1],
-      ["tomato-basil-bisque", 1],
-      ["thai-chicken", 1],
-      ["beef-chili", 1],
-      ["loaded-baked-potato", 1],
+      ["sourdough-focaccia-parmesan-and-caramelized-onion", 1],
       ["sourdough-crisps-sea-salt", 1],
-    ]), // $40.50
-    basket("Holiday Sweets Basket", [
-      ["butter-tart-pie", 1],
-      ["eggnog-ice-cream", 1],
-      ["tiramisu-ice-cream-bars", 1],
-      ["santas-ice-cream", 1],
-      ["ajwa-whole-dates", 1],
-    ]), // $34.50
+      ["sourdough-crisps-garlic-and-herb", 1],
+    ]), // $18.50 (cheap)
+    basket("Pampered Pets Basket", [
+      ["dog-food-digestive", 1],
+      ["dog-food-skin-coat", 1],
+      ["dog-food-mobility", 1],
+      ["cat-food", 1],
+    ]), // $104.00 (expensive)
   ],
-  // Real rounds: as many rounds as baskets listed here.
+  // Real rounds: as many rounds as baskets listed here. Totals jump around so nobody can just
+  // write "about $40" every time.
   dishes: [
     basket("Holiday Party Snacks", [
       ["beef-wellie-bites", 1],
@@ -274,12 +272,19 @@ export const GAME_CONFIG: GameConfig = {
       ["gochujang-caramel-popcorn", 1],
       ["pepperoni-pizza-chips", 1],
     ]), // $41.00
+    basket("Bakery Basket", [
+      ["sourdough-focaccia-rosemary-sea-salt", 1],
+      ["sourdough-baguette", 1],
+      ["garlic-pull-aparts", 1],
+      ["all-butter-croissants", 1],
+    ]), // $18.00
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
       ["acne-patches", 1],
       ["toner-pads-cica-chic-soothing", 1],
-    ]), // $47.00
+      ["eye-masks-dew-process-hydrating", 1],
+    ]), // $72.00
     basket("Cheese Board", [
       ["goat-cheese-pack", 1],
       ["amarena-goat-cheese", 1],
@@ -288,14 +293,15 @@ export const GAME_CONFIG: GameConfig = {
       ["lactose-free-mozzarella", 1],
       ["lactose-free-cheese-stick", 1],
     ]), // $46.50
-    basket("Bakery Basket", [
-      ["sourdough-focaccia-rosemary-sea-salt", 1],
-      ["sourdough-focaccia-green-olive", 1],
-      ["sourdough-baguette", 1],
-      ["garlic-pull-aparts", 1],
-      ["all-butter-croissants", 1],
-      ["protein-muffins-banana-chocolate-chip", 1],
-    ]), // $29.00
+    basket("Kitchen & Home Basket", [
+      ["charcuterie-board", 1],
+      ["honeycomb-clad-roaster", 1],
+      ["ceraware-skillet", 1],
+      ["tidystack-containers", 1],
+    ]), // $130.00
+  ],
+  // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
+  tiebreakers: [
     basket("Chocolate Lover's Basket", [
       ["milk-chocolate-truffles", 1],
       ["rice-cakes-milk-chocolate-caramel", 1],
@@ -304,21 +310,13 @@ export const GAME_CONFIG: GameConfig = {
       ["choc-almonds-dark-chocolate", 1],
       ["candy-cane-ice-cream", 1],
     ]), // $31.50
-  ],
-  // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
-  tiebreakers: [
-    basket("Kitchen & Home Basket", [
-      ["charcuterie-board", 1],
-      ["honeycomb-clad-roaster", 1],
-      ["ceraware-skillet", 1],
-      ["tidystack-containers", 1],
-    ]), // $130.00
-    basket("Pampered Pets Basket", [
-      ["dog-food-digestive", 1],
-      ["dog-food-skin-coat", 1],
-      ["dog-food-mobility", 1],
-      ["cat-food", 1],
-    ]), // $104.00
+    basket("Holiday Sweets Basket", [
+      ["butter-tart-pie", 1],
+      ["eggnog-ice-cream", 1],
+      ["tiramisu-ice-cream-bars", 1],
+      ["santas-ice-cream", 1],
+      ["ajwa-whole-dates", 1],
+    ]), // $34.50
     basket("Pasta Night Basket", [
       ["bolognese-ravioli", 1],
       ["burrata-ravioli", 1],
