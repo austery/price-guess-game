@@ -174,7 +174,6 @@
           case "open": return { label: "⏳ Practice in progress…", t: null };
           case "locked": return { label: "🎉 Reveal price", t: "reveal" };
           case "revealed":
-            if (view.breakdown && !bidsShown()) return { label: "📋 Show all guesses", local: true };
             return { label: lastPractice ? "✅ End practice" : "➡ Next practice round", t: "next" };
         }
       }
@@ -183,7 +182,6 @@
         case "open": return { label: "⏳ Round in progress…", t: null };
         case "locked": return { label: "🎉 Reveal price", t: "reveal" };
         case "revealed":
-          if (view.breakdown && !bidsShown()) return { label: "📋 Show all guesses", local: true };
           return { label: last || view.isTiebreak ? "🏆 Final results" : "➡ Scoreboard / next round", t: "next" };
         default: return view.canStartTiebreak ? { label: "⚔ Tiebreaker", t: "startTiebreak" } : { label: "Game over", t: null };
       }
@@ -191,13 +189,8 @@
     primary.onclick = () => {
       sound.unlock();
       const a = primaryAction();
-      if (a?.local) { shownBids.add(questionKey()); lastKey = ""; render(); }
-      else if (a?.t) conn.send({ t: a.t });
+      if (a?.t) conn.send({ t: a.t });
     };
-    // Basket reveals have two pages: "how the price adds up", then every table's guess (host-only, local).
-    const shownBids = new Set();
-    const questionKey = () => `${view.isPractice}|${view.practiceNumber}|${view.isTiebreak}|${view.roundNumber}`;
-    const bidsShown = () => shownBids.has(questionKey());
     const muteBtn = document.getElementById("muteBtn");
     const showMute = () => (muteBtn.textContent = sound.muted ? "🔇 Music off" : "🔊 Music on");
     muteBtn.onclick = () => { sound.unlock(); sound.setMuted(!sound.muted); showMute(); };
@@ -230,10 +223,9 @@
     function render() {
       if (!view) return;
       setBackground(backgroundFor(view));
-      if (view.phase !== "revealed") shownBids.clear();
       const a = primaryAction();
       primary.textContent = a.label;
-      primary.disabled = !a.t && !a.local;
+      primary.disabled = !a.t;
       lockBtn.classList.toggle("hidden", view.phase !== "open");
       document.getElementById("skipBtn").classList.toggle("hidden",
         !(view.isPractice && view.introStep >= 3 && (view.phase === "waiting" || view.phase === "revealed")));
@@ -248,7 +240,7 @@
       document.getElementById("topRight").textContent =
         `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
 
-      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}|${view.breakdown ? bidsShown() : ""}`;
+      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
       if (k === lastKey) return;
       lastKey = k;
       if (view.phase === "waiting") {
@@ -449,36 +441,34 @@
       tick();
     }
 
+    // One page: every item with its price tag and the total on top, this round's winner and
+    // every table's guess underneath (closest without going over first, over-bids last).
     function renderBasketReveal() {
       const r = view.result;
       const b = view.breakdown;
+      const sub = (t) => `<div class="br-sub">${esc(t)}</div>`;
       const headline = view.isTiebreak
-        ? tiebreakHeadline(r)
-        : r.winners.length
-          ? `🏆 Table ${r.winners.join(" & ")} ${view.isPractice ? "would have won!" : "wins this round!"}`
-          : "Everyone went over — no winner.";
-      // One of each item (the usual case): just Item | Price. Otherwise Item | Qty | Price | Subtotal.
-      const multi = b.some((x) => x.qty > 1);
-      const rows = b.map((x, i) => `<tr><th>${i + 2}</th><td>${esc(shortName(x.name))}</td>${multi ? `<td class="n">${x.qty}</td>` : ""}
-        <td class="n">${formatCents(x.unitCents)}</td>${multi ? `<td class="n">${formatCents(x.subtotalCents)}</td>` : ""}</tr>`).join("");
+        ? tiebreakHeadline(r) + sub(tiebreakHow(r))
+        : view.isPractice
+          ? (r.winners.length ? `🏆 Table ${r.winners.join(" & ")} would have won!` : "Everyone went over — no winner.") + sub("Practice — doesn't count.")
+          : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : "Everyone went over — no winner this round.";
+      // Up to 12 guesses: rows of up to 6, big digits. More: two dense rows (20 tables -> 2 x 10).
+      const n = r.entries.length;
+      const dense = n > 12;
+      const cols = Math.max(1, dense ? Math.ceil(n / 2) : Math.ceil(n / Math.ceil(n / 6)));
       main.innerHTML = `
         <div class="basket-r">
           <div class="br-head">
-            <div><div class="br-name">${esc(view.dish.name)}</div><div class="winner">${headline}</div></div>
+            <div class="br-name">${esc(view.dish.name)}</div>
             <div class="br-total">Total <span class="price">${formatCents(r.priceCents)}</span></div>
           </div>
-          <div class="br-body">
-            <div class="parts priced n${b.length}">${b.map((p) => partCard(p, true)).join("")}</div>
-            <div class="xl">
-              <div class="xl-bar"><span class="xl-logo">X</span> basket-math.xlsx</div>
-              <table>
-                <tr class="cols"><th></th><th>A</th><th>B</th>${multi ? "<th>C</th><th>D</th>" : ""}</tr>
-                <tr class="hdr"><th>1</th><td>Item</td>${multi ? `<td class="n">Qty</td><td class="n">Price</td><td class="n">Subtotal</td>` : `<td class="n">Price</td>`}</tr>
-                ${rows}
-                <tr class="total"><th>${b.length + 2}</th><td${multi ? ' colspan="3"' : ""}>TOTAL</td><td class="n">${formatCents(r.priceCents)}</td></tr>
-              </table>
-            </div>
-          </div>
+          <div class="parts priced n${b.length}">${b.map((p) => partCard(p, true)).join("")}</div>
+          <div class="winner">${headline}</div>
+          ${n ? `<div class="guesses${dense ? " dense" : ""}" style="--g-cols:${cols}">${r.entries.map((e) => `
+            <div class="g ${e.winner ? "win" : e.over ? "over" : ""}">
+              <div class="g-t">Table ${e.table}${e.over ? ` <span class="tag">OVER</span>` : ""}</div>
+              <div class="g-p price">${formatCents(e.cents)}</div>
+            </div>`).join("")}</div>` : `<div class="muted br-sub">No guesses this round.</div>`}
         </div>`;
     }
 
@@ -509,7 +499,7 @@
     }
 
     function renderReveal() {
-      if (view.breakdown && !bidsShown()) return renderBasketReveal();
+      if (view.breakdown) return renderBasketReveal();
       const r = view.result;
       const practiceNote = `<div class="muted" style="font-size:1.6vw;font-weight:400">Practice — doesn't count.</div>`;
       const headline = view.isTiebreak

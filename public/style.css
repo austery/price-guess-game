@@ -239,27 +239,28 @@ body.bar-hidden .screen-main { padding-bottom: 2vw; }
 .part .p-tag small { display: block; font-size: .5em; font-weight: 700; text-align: right; margin-top: .15vw; }
 
 .br-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 2vw; }
-.br-name { font-size: 2.6vw; font-weight: 800; line-height: 1.1; }
-.basket-r .winner { font-size: 2.2vw; font-weight: 800; color: var(--good); margin-top: .4vw; }
+.br-name { font-size: 3vw; font-weight: 800; line-height: 1.1; }
 .br-total { font-size: 2vw; color: var(--muted); text-align: right; white-space: nowrap; }
-.br-total .price { display: block; font-size: 6vw; line-height: 1; font-weight: 900; color: var(--accent); }
-.br-body { display: flex; flex-direction: column; gap: 1.6vw; }
-.br-body .parts { gap: 1.2vw 2vw; }
-.br-body .part .p-img { height: 11vh; }
-.br-body .part .p-name { -webkit-line-clamp: 1; font-size: 1.1vw; }
-
-/* spreadsheet look */
-.xl { background: #fff; color: #222; border-radius: .6vw; overflow: hidden; box-shadow: 0 1vw 2.5vw rgba(0,0,0,.35); }
-.xl-bar { background: #1d6f42; color: #fff; font-weight: 700; font-size: 1.2vw; padding: .5vw .9vw; display: flex; align-items: center; gap: .6vw; }
-.xl-logo { background: #fff; color: #1d6f42; font-weight: 900; border-radius: .25vw; padding: 0 .4vw; }
-.xl table { width: 100%; border-collapse: collapse; font-size: 1.3vw; font-variant-numeric: tabular-nums; }
-.xl th, .xl td { border: 1px solid #d4d4d4; padding: .3vw .7vw; white-space: nowrap; }
-.xl th { background: #f2f2f2; color: #666; font-weight: 600; width: 2.2vw; text-align: center; font-size: .8em; }
-.xl tr.cols th { padding: .15vw; }
-.xl tr.hdr td { font-weight: 800; background: #e8f3ec; }
-.xl td.n { text-align: right; white-space: nowrap; }
-.xl tr.total td { font-weight: 900; background: #fff4c2; font-size: 1.15em; }
-.xl tr.total td:first-child { text-align: right; }
+.br-total .price { display: block; font-size: 5.4vw; line-height: 1; font-weight: 900; color: var(--accent); }
+.basket-r .parts { gap: 1.2vw 2vw; }
+.basket-r .part .p-img { height: 15vh; }
+.basket-r .part .p-name { -webkit-line-clamp: 1; font-size: 1.1vw; }
+.basket-r .part .p-tag { bottom: .4vw; }
+.basket-r .winner { font-size: 2.6vw; font-weight: 800; color: var(--good); text-align: center; margin-top: .4vw; }
+.br-sub { font-size: 1.5vw; font-weight: 400; color: var(--muted); }
+.guesses { display: grid; grid-template-columns: repeat(var(--g-cols, 6), 1fr); gap: .8vw; }
+.guesses .g { background: rgba(0,0,0,.28); border-radius: .8vw; padding: .6vw .8vw; text-align: center; }
+.guesses .g-t { font-size: 1.4vw; font-weight: 600; color: var(--muted); }
+.guesses .g-p { font-size: 2.3vw; font-weight: 800; }
+.guesses .g.win { background: var(--good); color: var(--good-ink); }
+.guesses .g.win .g-t { color: var(--good-ink); }
+.guesses .g.over { opacity: .6; }
+.guesses .g.over .g-p { text-decoration: line-through; }
+.guesses.dense { gap: .5vw; }
+.guesses.dense .g { padding: .4vw .3vw; }
+.guesses.dense .g-t { font-size: 1.1vw; }
+.guesses.dense .g-p { font-size: 1.6vw; }
+.guesses .tag { font-size: .75em; font-weight: 800; letter-spacing: .05em; color: var(--bad); }
 
 @media (max-width: 700px) {
   .screen-top { font-size: 14px; }
@@ -278,8 +279,9 @@ body.bar-hidden .screen-main { padding-bottom: 2vw; }
   .reveal .winner { font-size: 24px; }
   .bids { columns: 1; }
   .screen-main { padding-bottom: 120px; }
-  .bq-top, .br-body { grid-template-columns: 1fr; }
-  .parts, .br-body .parts { --cols: 2; }
+  .bq-top { grid-template-columns: 1fr; }
+  .parts, .basket-r .parts { --cols: 2; }
+  .guesses { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* phone: basket breakdown */
