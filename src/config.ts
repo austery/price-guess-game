@@ -273,12 +273,13 @@ export const GAME_CONFIG: GameConfig = {
       ["gochujang-caramel-popcorn", 1],
       ["pepperoni-pizza-chips", 1],
     ]), // $41.00
-    basket("Bakery Basket", [
-      ["sourdough-focaccia-rosemary-sea-salt", 1],
-      ["sourdough-baguette", 1],
-      ["garlic-pull-aparts", 1],
-      ["all-butter-croissants", 1],
-    ]), // $18.00
+    basket("Holiday Movie Night", [
+      ["milk-chocolate-truffles", 1],
+      ["black-label-pinsa", 1],
+      ["candy-cane-ice-cream", 1],
+      ["rice-cakes-mango", 1],
+      ["shirley-temple-soda", 1],
+    ]), // $35.00
     basket("Favourite Things Gift Box", [
       ["hand-cream-trio", 1],
       ["epsom-salts", 1],
@@ -303,14 +304,7 @@ export const GAME_CONFIG: GameConfig = {
   ],
   // Only used if tables are tied for first: still tied after one -> the next; after the last, lots are drawn.
   tiebreakers: [
-    // Harder on purpose: mixed categories, cheap next to expensive, odd cents.
-    basket("Holiday Movie Night", [
-      ["milk-chocolate-truffles", 1],
-      ["black-label-pinsa", 1],
-      ["candy-cane-ice-cream", 1],
-      ["rice-cakes-mango", 1],
-      ["shirley-temple-soda", 1],
-    ]), // $35.00
+    // Mixed categories, cheap next to expensive, odd cents; the bakery basket is the easy last resort.
     basket("Christmas Morning Brunch", [
       ["sous-chef-crispy-wedges", 1],
       ["juice-shots", 1],
@@ -325,5 +319,11 @@ export const GAME_CONFIG: GameConfig = {
       ["rice-cakes-mixed-berry", 1],
       ["choc-almonds-dark-chocolate", 1],
     ]), // $45.75
+    basket("Bakery Basket", [
+      ["sourdough-focaccia-rosemary-sea-salt", 1],
+      ["sourdough-baguette", 1],
+      ["garlic-pull-aparts", 1],
+      ["all-butter-croissants", 1],
+    ]), // $18.00
   ],
 };
