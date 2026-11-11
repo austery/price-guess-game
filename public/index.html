@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1220" />
+  <title>Price Guess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@400;600;700;900&display=swap" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="phone">
+    <header>
+      <span><span id="dot" class="status-dot"></span><span id="status" class="muted">Connecting…</span></span>
+      <strong id="tableLabel"></strong>
+    </header>
+    <div id="app"></div>
+    <div id="notice" class="notice hidden"></div>
+  </div>
+
+  <script type="module">
+    import { connect, formatCents, esc, secondsLeft } from "/common.js";
+
+    // One random id per phone, kept across refreshes so the phone keeps its table.
+    let token = null;
+    try { token = localStorage.getItem("pg-token"); } catch {}
+    if (!token) {
+      token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try { localStorage.setItem("pg-token", token); } catch {}
+    }
+
+    const app = document.getElementById("app");
+    const notice = document.getElementById("notice");
+    let view = null;
+    let changingTable = false;
+    let draft = ""; // what the user is typing; survives re-renders
+    let lastRenderKey = "";
+    let lastPhase = "";
+
+    const conn = connect({
+      params: { role: "player", token },
+      onState: (v) => { view = v; if (v.myTable) changingTable = false; render(); },
+      onError: (e) => showNotice(e.message, "error"),
+      onAck: () => {
+        // Clear the box once the server has the guess; the big "Your guess" number and the green note stay until time is up.
+        draft = "";
+        const input = document.getElementById("price");
+        if (input) input.value = "";
+      },
+      onStatus: (s) => {
+        document.getElementById("dot").className = `status-dot ${s}`;
+        document.getElementById("status").textContent = s === "online" ? "Connected" : s === "connecting" ? "Connecting…" : "Reconnecting…";
+      },
+    });
+
+    function showNotice(text, kind) {
+      notice.textContent = text;
+      notice.className = `notice ${kind}`;
+      clearTimeout(showNotice.t);
+      showNotice.t = setTimeout(() => notice.classList.add("hidden"), 4000);
+    }
+
+    function render() {
+      if (!view) return;
+      document.getElementById("tableLabel").textContent = view.myTable ? `Table ${view.myTable}` : "";
+      const phaseKey = `${view.phase}|${view.roundNumber}|${view.isTiebreak}`;
+      if (phaseKey !== lastPhase) { lastPhase = phaseKey; notice.classList.add("hidden"); }
+      // While a round is open, other tables submitting must NOT rebuild the page
+      // (that would close the phone keyboard), so the key ignores the global version.
+      const key = view.phase === "open" && view.myTable && !changingTable
+        ? ["open", view.roundNumber, view.isTiebreak, view.myTable, view.myBid?.cents ?? ""].join("|")
+        : [view.version, view.phase, view.myTable, changingTable].join("|");
+      if (key === lastRenderKey) return tick();
+      lastRenderKey = key;
+
+      if (!view.myTable || changingTable) return renderPickTable();
+      // The phone is only for typing the table's guess: everything else (rules, items, results,
+      // standings, champion) is on the big screen, so the whole table watches it together.
+      const inTiebreak = view.isTiebreak && view.tiebreakTables.includes(view.myTable);
+      const gameOver = view.phase === "final" && !view.canStartTiebreak;
+      const watching = view.phase === "waiting" || view.phase === "final" || (view.isTiebreak && !inTiebreak);
+
+      if (gameOver) {
+        app.innerHTML = `
+          <div class="card big-result">Thank you for participating.<br>Have a good holiday!</div>`;
+        return;
+      }
+
+      if (watching) {
+        app.innerHTML = `
+          <div class="card big-result">You are Table ${view.myTable}</div>
+          ${view.phase === "waiting" ? `<button class="link-btn" id="change">Wrong table? Change it</button>` : ""}`;
+        const change = document.getElementById("change");
+        if (change) change.onclick = () => { changingTable = true; render(); };
+        return;
+      }
+
+      if (view.phase === "open") {
+        const mine = view.myBid ? formatCents(view.myBid.cents) : null;
+        app.innerHTML = `
+          <div class="countdown" id="cd"></div>
+          <div class="muted" style="text-align:center;margin-top:-14px;font-size:13px;letter-spacing:.08em">SECONDS LEFT</div>
+          <div class="card"><h1 style="margin:0">${esc(view.dish?.name ?? "")}</h1></div>
+          ${mine ? `<div class="my-guess">Your guess <strong class="price">${mine}</strong></div>` : ""}
+          <form class="bid-form" id="bid" autocomplete="off">
+            <div class="input-wrap"><span>$</span>
+              <input id="price" inputmode="decimal" enterkeyhint="send" placeholder="0.00" aria-label="Your price guess" />
+            </div>
+            <button type="submit">${mine ? "Change" : "Submit"}</button>
+          </form>
+          ${mine ? `<div class="notice ok" style="margin-top:12px">Submitted! You can change it until time's up.</div>` : ""}`;
+        const input = document.getElementById("price");
+        input.value = draft;
+        input.oninput = () => (draft = input.value);
+        document.getElementById("bid").onsubmit = (e) => {
+          e.preventDefault();
+          if (!input.value.trim()) return showNotice("Type a price first, e.g. 30.75", "error");
+          conn.send({ t: "submit", price: input.value });
+          input.blur();
+        };
+        if (!mine) input.focus();
+        return tick();
+      }
+
+      // locked or revealed: just confirm what the table handed in; the result is on the big screen.
+      draft = "";
+      app.innerHTML = `
+        <div class="card big-result">⏱️ Time's up!</div>
+        ${view.myBid
+          ? `<div class="my-guess">Your guess <strong class="price">${formatCents(view.myBid.cents)}</strong></div>`
+          : `<div class="card"><span class="bad">Your table didn't submit a guess this round.</span></div>`}`;
+    }
+
+    function renderPickTable() {
+      const taken = new Set(view.claimedTables);
+      app.innerHTML = `
+        <div class="card"><h1>Which table are you at?</h1>
+        <p class="muted">Only <strong>one phone per table</strong> joins.</p></div>
+        <div class="table-grid">${Array.from({ length: view.tables }, (_, i) => i + 1).map((t) =>
+          `<button class="${t === view.myTable ? "" : "secondary"}" data-t="${t}" ${taken.has(t) && t !== view.myTable ? "disabled" : ""}>${t}</button>`).join("")}
+        </div>
+        ${view.myTable ? `<button class="link-btn" id="cancel">Keep Table ${view.myTable}</button>` : ""}
+        <p class="muted" style="font-size:14px">Greyed-out tables have already joined. If your table's phone died, ask the host to release it.</p>`;
+      app.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => conn.send({ t: "claim", table: Number(b.dataset.t) })));
+      const cancel = document.getElementById("cancel");
+      if (cancel) cancel.onclick = () => { changingTable = false; render(); };
+    }
+
+    function tick() {
+      const cd = document.getElementById("cd");
+      if (!cd || view?.phase !== "open") return;
+      const left = secondsLeft(view.deadline, conn.serverNow());
+      cd.textContent = left > 0 ? left : "0";
+      cd.classList.toggle("urgent", left <= 5);
+    }
+    setInterval(tick, 200);
+  </script>
+</body>
+</html>

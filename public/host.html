@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Price Guess — Host</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@400;600;700;900&display=swap" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <form id="keyForm" class="key-form hidden">
+    <h2>Host key</h2>
+    <input id="keyInput" type="password" autocomplete="current-password" placeholder="Enter host key" />
+    <button type="submit">Open host screen</button>
+    <div id="keyMsg" class="bad"></div>
+  </form>
+
+  <div id="bgA" class="bg-layer"></div>
+  <div id="bgB" class="bg-layer"></div>
+  <div id="bgShade" class="bg-shade hidden"></div>
+  <div id="bgDeco" class="bg-deco hidden"></div>
+  <div id="bgFrame" class="bg-frame hidden"></div>
+  <div id="screen" class="screen hidden">
+    <div class="screen-top">
+      <span id="topLeft"></span>
+      <span><span id="dot" class="status-dot"></span><span id="topRight"></span></span>
+    </div>
+    <div class="screen-main" id="main"></div>
+  </div>
+
+  <div id="controls" class="controls hidden">
+    <button id="primary"></button>
+    <button id="lockBtn" class="secondary hidden">Stop now</button>
+    <button id="skipBtn" class="secondary hidden">Skip practice</button>
+    <span class="msg" id="ctlMsg"></span>
+    <span class="spacer"></span>
+    <span class="muted" style="font-size:13px">Space = main button · M = music · H = hide bar</span>
+    <button id="muteBtn" class="secondary"></button>
+    <button id="resetRound" class="secondary">Redo round</button>
+    <button id="resetGame" class="danger">Reset game</button>
+  </div>
+
+  <script type="module">
+    import { connect, formatCents, esc, secondsLeft } from "/common.js";
+    import { createCountdownSound } from "/sound.js";
+
+    const sound = createCountdownSound();
+    let lastSoundKey = "";
+    /** Music plays only while a round is open; buzzer when it locks; silence on reveal. */
+    function syncSound(v) {
+      const key = `${v.phase}|${v.isPractice}|${v.practiceNumber}|${v.isTiebreak}|${v.roundNumber}`;
+      if (key === lastSoundKey) return;
+      const prev = lastSoundKey;
+      lastSoundKey = key;
+      if (!prev) return; // page just loaded: don't start mid-round
+      if (v.phase === "open") sound.start((v.deadline - v.serverNow) / 1000, questionIndex(v));
+      else if (v.phase === "locked" && prev.startsWith("open|")) sound.locked();
+      else sound.stop();
+    }
+
+    const params = new URLSearchParams(location.search);
+    let key = params.get("key") || sessionStorage.getItem("pg-host-key") || "";
+    const keyForm = document.getElementById("keyForm");
+
+    async function checkKey(k) {
+      const r = await fetch(`/api/host-check?key=${encodeURIComponent(k)}`);
+      return r.ok;
+    }
+
+    async function boot() {
+      if (key && (await checkKey(key))) {
+        sessionStorage.setItem("pg-host-key", key);
+        if (params.has("key")) { // keep the key out of the address bar
+          params.delete("key");
+          history.replaceState(null, "", `/host${params.size ? `?${params}` : ""}`);
+        }
+        return startHost();
+      }
+      keyForm.classList.remove("hidden");
+      if (key) document.getElementById("keyMsg").textContent = "Wrong key.";
+    }
+    keyForm.onsubmit = async (e) => {
+      e.preventDefault();
+      key = document.getElementById("keyInput").value.trim();
+      if (await checkKey(key)) { keyForm.classList.add("hidden"); sessionStorage.setItem("pg-host-key", key); startHost(); }
+      else document.getElementById("keyMsg").textContent = "Wrong key.";
+    };
+    boot();
+
+    let view = null;
+    let conn = null;
+    let lastKey = "";
+    const main = document.getElementById("main");
+    const joinUrl = `${location.origin}/`;
+
+    // ---------- rotating holiday backgrounds (the four Insiders Report covers, blurred) ----------
+    // "classic": designed Christmas backgrounds (crisp at any size). "photo": the blurred Insiders covers.
+    const BACKGROUND_STYLE = new URLSearchParams(location.search).get("bg") || "classic";
+    const BACKGROUNDS = BACKGROUND_STYLE === "photo" ? [1, 2, 3, 4].map((n) => `/theme/bg-${n}.jpg`) : ["t-3", "t-0", "t-1", "t-2"];
+    if (BACKGROUND_STYLE === "photo") BACKGROUNDS.forEach((u) => (new Image().src = u));
+    let bgShown = null, bgFront = "bgA";
+    /** 0 for the first question (practice 1), 1 for the next, ... */
+    function questionIndex(v) {
+      if (v.isPractice) return v.practiceNumber - 1;
+      if (v.isTiebreak) return v.practiceTotal + v.totalRounds + (v.tiebreakNumber - 1);
+      return v.practiceTotal + (v.roundNumber - 1);
+    }
+    function backgroundFor(v) {
+      let seq;
+      if (v.phase === "waiting" && v.introStep < 3) seq = v.introStep; // join, welcome, rules
+      else if (v.phase === "final") seq = 0;
+      else seq = 3 + questionIndex(v);
+      return BACKGROUNDS[seq % BACKGROUNDS.length];
+    }
+    function setBackground(url) {
+      if (url === bgShown) return;
+      bgShown = url;
+      const back = bgFront === "bgA" ? "bgB" : "bgA";
+      const el = document.getElementById(back);
+      if (BACKGROUND_STYLE === "photo") el.style.backgroundImage = `url("${url}")`;
+      else el.className = `bg-layer ${url}`;
+      // force a style flush so the fade-in transition runs
+      void el.offsetWidth;
+      el.classList.add("on");
+      document.getElementById(bgFront).classList.remove("on");
+      bgFront = back;
+      const photo = BACKGROUND_STYLE === "photo";
+      document.getElementById("bgShade").classList.toggle("hidden", !photo);
+      document.getElementById("bgDeco").classList.toggle("hidden", photo);
+      document.getElementById("bgFrame").classList.toggle("hidden", photo);
+    }
+
+    function startHost() {
+      document.getElementById("screen").classList.remove("hidden");
+      document.getElementById("controls").classList.remove("hidden");
+      conn = connect({
+        params: { role: "host", key },
+        onState: (v) => { view = v; preload(v.preloadImages); syncSound(v); render(); },
+        onError: (e) => flash(e.message),
+        onStatus: (s) => (document.getElementById("dot").className = `status-dot ${s}`),
+      });
+      setInterval(tick, 200);
+    }
+
+    // Load every item image up front so a slow venue network can't delay the reveal of a product.
+    const preloaded = new Set();
+    function preload(urls = []) {
+      for (const u of urls) if (!preloaded.has(u)) { preloaded.add(u); new Image().src = u; }
+    }
+
+    function flash(text) {
+      const m = document.getElementById("ctlMsg");
+      m.textContent = text;
+      clearTimeout(flash.t);
+      flash.t = setTimeout(() => (m.textContent = ""), 5000);
+    }
+
+    // ---------- controls ----------
+    const primary = document.getElementById("primary");
+    const lockBtn = document.getElementById("lockBtn");
+    function primaryAction() {
+      if (!view) return null;
+      const last = view.roundNumber >= view.totalRounds;
+      if (view.phase === "waiting" && view.introStep < 2) {
+        return { label: view.introStep === 0 ? "➡ Welcome screen" : "➡ How to play", t: "introNext" };
+      }
+      if (view.isPractice) {
+        const lastPractice = view.practiceNumber >= view.practiceTotal;
+        switch (view.phase) {
+          case "waiting": return { label: `▶ Start practice ${view.practiceNumber}`, t: "start" };
+          case "open": return { label: "⏳ Practice in progress…", t: null };
+          case "locked": return { label: "🎉 Reveal price", t: "reveal" };
+          case "revealed":
+            return { label: lastPractice ? "✅ End practice" : "➡ Next practice round", t: "next" };
+        }
+      }
+      switch (view.phase) {
+        case "waiting": return { label: view.isTiebreak ? "▶ Start tiebreaker" : `▶ Start round ${view.roundNumber}`, t: "start" };
+        case "open": return { label: "⏳ Round in progress…", t: null };
+        case "locked": return { label: "🎉 Reveal price", t: "reveal" };
+        case "revealed":
+          return { label: last || view.isTiebreak ? "🏆 Final results" : "➡ Scoreboard / next round", t: "next" };
+        default: return view.canStartTiebreak ? { label: "⚔ Tiebreaker", t: "startTiebreak" } : { label: "Game over", t: null };
+      }
+    }
+    primary.onclick = () => {
+      sound.unlock();
+      const a = primaryAction();
+      if (a?.t) conn.send({ t: a.t });
+    };
+    const muteBtn = document.getElementById("muteBtn");
+    const showMute = () => (muteBtn.textContent = sound.muted ? "🔇 Music off" : "🔊 Music on");
+    muteBtn.onclick = () => { sound.unlock(); sound.setMuted(!sound.muted); showMute(); };
+    showMute();
+    lockBtn.onclick = () => conn.send({ t: "lock" });
+    document.getElementById("skipBtn").onclick = () => {
+      if (confirm("Skip the rest of the practice and start the real game?")) conn.send({ t: "skipPractice" });
+    };
+    document.getElementById("resetRound").onclick = () => {
+      if (confirm(`Redo round ${view.roundNumber}? All guesses for this round will be deleted.`)) conn.send({ t: "resetRound" });
+    };
+    document.getElementById("resetGame").onclick = () => {
+      if (!confirm("Reset the WHOLE game back to round 1? All guesses and scores will be deleted.")) return;
+      const clearTables = confirm(
+        "Also clear all table joins?\n\nOK = every phone must pick its table again (use this after a rehearsal).\nCancel = keep tables joined.");
+      conn.send({ t: "resetGame", keepClaims: !clearTables });
+    };
+    document.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); primary.click(); }
+      if (e.key === "ArrowLeft" && view?.phase === "waiting" && view.introStep > 0 && view.introStep < 3) conn.send({ t: "introBack" });
+      if (e.key === "m" || e.key === "M") muteBtn.click();
+      if (e.key === "h" || e.key === "H") {
+        document.getElementById("controls").classList.toggle("hidden");
+        document.body.classList.toggle("bar-hidden");
+      }
+    });
+
+    // ---------- rendering ----------
+    function render() {
+      if (!view) return;
+      setBackground(backgroundFor(view));
+      const a = primaryAction();
+      primary.textContent = a.label;
+      primary.disabled = !a.t;
+      lockBtn.classList.toggle("hidden", view.phase !== "open");
+      document.getElementById("skipBtn").classList.toggle("hidden",
+        !(view.isPractice && view.introStep >= 3 && (view.phase === "waiting" || view.phase === "revealed")));
+      document.getElementById("resetRound").disabled = view.phase === "final";
+
+      document.getElementById("topLeft").innerHTML =
+        view.phase === "waiting" && view.introStep < 3 ? `<strong>${esc(view.title)}</strong> · Holiday Edition`
+        : view.phase === "final" ? `<strong>${esc(view.title)}</strong>`
+        : view.isTiebreak ? `<strong>Tiebreaker${view.tiebreakNumber > 1 ? ` ${view.tiebreakNumber}` : ""}</strong> · Tables ${view.tiebreakTables.join(", ")}`
+        : view.isPractice ? `<strong>Practice ${view.practiceNumber}</strong> of ${view.practiceTotal} · doesn't count`
+        : `<strong>Round ${view.roundNumber}</strong> of ${view.totalRounds}`;
+      document.getElementById("topRight").textContent =
+        `${view.claimedTables.length}/${view.tables} tables joined · ${view.connectedTables.length} online`;
+
+      const k = `${view.version}|${view.phase}|${view.connectedTables.join(",")}`;
+      if (k === lastKey) return;
+      lastKey = k;
+      if (view.phase === "waiting") {
+        if (view.introStep === 1) return renderWelcome();
+        if (view.introStep === 2) return renderRules();
+        if (view.isTiebreak) return renderTiebreakIntro();
+        if (view.isPractice) return view.practiceNumber === 1 ? renderJoin() : renderPracticeNext();
+        return view.roundNumber === 1 ? renderJoin() : renderStandings(false);
+      }
+      if (view.phase === "open" || view.phase === "locked") return renderDish();
+      if (view.phase === "revealed") return renderReveal();
+      if (view.phase === "final") return renderStandings(true);
+    }
+
+    function chips(highlightSubmitted, compact = false) {
+      const claimed = new Set(view.claimedTables), online = new Set(view.connectedTables), sub = new Set(view.submittedTables);
+      const shown = view.isTiebreak ? view.tiebreakTables : Array.from({ length: view.tables }, (_, i) => i + 1);
+      // Compact row under a question: one line up to 15 tables, otherwise two even lines (20 -> 2 x 10).
+      // Join screen etc.: rows of 5 up to 15 tables, otherwise two even lines.
+      const cols = compact ? (shown.length <= 15 ? shown.length : Math.ceil(shown.length / 2)) : shown.length > 15 ? Math.ceil(shown.length / 2) : 5;
+      return `<div class="chips${compact ? " compact" : ""}" style="--chip-cols:${Math.max(cols, 1)}">${shown.map((t) => {
+        const cls = ["chip", claimed.has(t) && "claimed", online.has(t) && "connected", highlightSubmitted && sub.has(t) && "submitted"].filter(Boolean).join(" ");
+        return `<div class="${cls}" data-release="${claimed.has(t) ? t : ""}" title="${claimed.has(t) ? "Click to release this table" : ""}">${t}</div>`;
+      }).join("")}</div>`;
+    }
+    main.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-release]")?.dataset.release;
+      if (t && confirm(`Release table ${t}? Its phone will need to pick a table again.`)) conn.send({ t: "release", table: Number(t) });
+    });
+
+    function renderPracticeNext() {
+      main.innerHTML = `
+        <div class="standings">
+          <h1>Practice round ${view.practiceNumber} of ${view.practiceTotal}</h1>
+          <p class="muted" style="font-size:2vw">One more warm-up — this one doesn't count either.</p>
+          ${chips(false, true)}
+        </div>`;
+    }
+
+    function renderWelcome() {
+      main.innerHTML = `
+        <div class="welcome">
+          <div class="cover-fan">
+            ${[1, 2, 3, 4].map((n) => `<img src="/theme/insiders-cover-${n}.jpg" alt="" />`).join("")}
+          </div>
+          <div>
+            <div class="kicker">PRESIDENT'S CHOICE INSIDERS REPORT</div>
+            <h1>Guess the Price!</h1>
+            <div class="script">Holiday Edition</div>
+            <p>How well do you know our new holiday products? Let's find out which table really knows its prices!</p>
+          </div>
+        </div>`;
+    }
+
+    // The organisers' rules, shortened (rules 1-3 merged into one line), plus the re-entry rule. Only "without going over" is in gold.
+    function rulesText(rounds, seconds) {
+      const g = (t) => `<b>${t}</b>`;
+      return [
+        `There are ${rounds} baskets. Guess the total price of all the items in each basket.`,
+        `The table that is closest to the total ${g("without going over")} wins that round!`,
+        "The table with the most correct guesses wins a prize!",
+        `You have ${seconds} seconds per basket. If you type it wrong, enter a new price before time runs out.`,
+      ];
+    }
+
+    function renderRules() {
+      main.innerHTML = `
+        <div class="rules fancy">
+          <h1>The <span class="script">Rules</span></h1>
+          <ol>${rulesText(view.totalRounds, view.roundSeconds).map((text, i) => `
+            <li><span class="r-num">${i + 1}</span><span class="r-text">${text}</span></li>`).join("")}
+          </ol>
+        </div>`;
+    }
+
+    function collage(images) {
+      const [main, side] = images;
+      if (!main) return "<div></div>";
+      return `<div class="collage${side ? "" : " single"}">
+        <div class="card main"><img src="${esc(main)}" alt="" onload="this.closest('.collage').classList.toggle('wide', this.naturalWidth / this.naturalHeight > 1.35)" /></div>
+        ${side ? `<div class="card side"><img src="${esc(side)}" alt="" /></div>` : ""}
+      </div>`;
+    }
+
+    function renderJoin() {
+      const banner = view.isPractice
+        ? `<div class="notice" style="font-size:1.8vw;margin-bottom:1.5vw">🏋️ First, ${view.practiceTotal} practice round${view.practiceTotal === 1 ? "" : "s"} — they don't count!</div>`
+        : view.practiceDone
+          ? `<div class="notice ok" style="font-size:2.2vw;margin-bottom:1.5vw">✅ Practice over — <strong>from now on it counts!</strong></div>`
+          : "";
+      main.innerHTML = `
+        <div class="join">
+          <img src="/qr.svg" alt="QR code to join" />
+          <div>
+            ${banner}
+            <h1>Scan to join — one phone per table</h1>
+            <div class="url">${esc(joinUrl)}</div>
+            <p class="muted" style="font-size:1.6vw">Pick your table number, then wait for the first question.
+              ${esc(view.guessPrompt)} <strong>Closest without going over wins!</strong></p>
+            ${chips(false)}
+          </div>
+        </div>`;
+    }
+
+    function renderDish() {
+      const d = view.dish;
+      if (d.parts) return renderBasketQuestion();
+      main.innerHTML = `
+        <div class="dish">
+          ${collage(d.images)}
+          <div>
+            <h1 class="${d.name.length > 40 ? "long" : ""}">${esc(d.name)}</h1>
+            <ul>${d.ingredients.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
+            <div class="countdown" id="cd"></div>
+            <div class="cd-label" id="cdLabel">seconds left</div>
+            <div class="sub" id="subCount"></div>
+            ${chips(true, true)}
+          </div>
+        </div>`;
+      tick();
+    }
+
+    // ---------- gift baskets ----------
+    const shortName = (n) => n.replace(/^PC® /, "");
+    const uniqueParts = (parts) => parts.filter((p, i) => parts.findIndex((q) => q.image === p.image) === i);
+
+    /** The whole basket: a photo if one was given, else the items piled into a drawn wicker basket. */
+    function basketArt(d) {
+      if (d.images[0]) return `<div class="basket-photo"><img src="${esc(d.images[0])}" alt="" /></div>`;
+      const items = uniqueParts(d.parts);
+      const n = items.length;
+      const pile = items.map((p, i) => {
+        const x = n === 1 ? 50 : 16 + (i * 68) / (n - 1);
+        const mid = (n - 1) / 2;
+        const rot = n === 1 ? 0 : ((i - mid) / Math.max(mid, 1)) * 11;
+        const lift = 8 - Math.abs(i - mid) * (14 / Math.max(n, 2)) + (i % 2 ? 6 : 0);
+        return `<div class="b-item" style="left:${x}%;bottom:${28 + lift}%;transform:translateX(-50%) rotate(${rot.toFixed(1)}deg);z-index:${i % 2 ? 2 : 1}">
+          <img src="${esc(p.image)}" alt="" /></div>`;
+      }).join("");
+      return `<div class="basket-art">
+        <svg class="b-handle" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M70 215 C 70 10, 330 10, 330 215" fill="none" stroke="#6d3f17" stroke-width="22" stroke-linecap="round"/>
+          <path d="M70 215 C 70 10, 330 10, 330 215" fill="none" stroke="#b57a3c" stroke-width="12" stroke-dasharray="14 8" stroke-linecap="round"/>
+        </svg>
+        ${pile}
+        <svg class="b-front" viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <pattern id="weave" width="28" height="22" patternUnits="userSpaceOnUse">
+              <rect width="28" height="22" fill="#a8692f"/>
+              <rect x="1" y="2" width="12" height="7" rx="3.5" fill="#cf9150"/>
+              <rect x="15" y="13" width="12" height="7" rx="3.5" fill="#cf9150"/>
+              <rect x="15" y="2" width="12" height="7" rx="3.5" fill="#b9783a"/>
+              <rect x="1" y="13" width="12" height="7" rx="3.5" fill="#b9783a"/>
+            </pattern>
+            <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/>
+            </linearGradient>
+          </defs>
+          <path d="M18 26 L382 26 L350 166 L50 166 Z" fill="url(#weave)"/>
+          <path d="M18 26 L382 26 L350 166 L50 166 Z" fill="url(#shade)"/>
+          <rect x="6" y="6" width="388" height="28" rx="14" fill="#7a461b"/>
+          <rect x="6" y="6" width="388" height="28" rx="14" fill="none" stroke="#d29a5a" stroke-width="5" stroke-dasharray="16 10"/>
+          <path d="M150 34 L250 34 L245 166 L155 166 Z" fill="#c8102e" opacity=".92"/>
+          <path d="M200 20 C 150 -14, 120 34, 196 30 Z M204 20 C 250 -14, 280 34, 204 30 Z" fill="#e0263f" stroke="#8c0a1f" stroke-width="3"/>
+          <circle cx="200" cy="24" r="10" fill="#b30d27"/>
+        </svg>
+      </div>`;
+    }
+
+    function partCard(p, priced) {
+      return `<div class="part">
+        <div class="p-img"><img src="${esc(p.image)}" alt="" />
+          ${p.qty > 1 ? `<span class="p-qty">×${p.qty}</span>` : ""}
+          ${priced ? `<span class="p-tag">${formatCents(p.unitCents)}${p.qty > 1 ? "<small>each</small>" : ""}</span>` : ""}
+        </div>
+        <div class="p-name">${esc(shortName(p.name))}</div>
+        ${p.size ? `<div class="p-size">${esc(p.size)}</div>` : ""}
+      </div>`;
+    }
+
+    function renderBasketQuestion() {
+      const d = view.dish;
+      main.innerHTML = `
+        <div class="basket-q">
+          <div class="bq-top">
+            <div class="bq-art">${basketArt(d)}</div>
+            <div class="bq-side">
+              <h1>${esc(d.name)}</h1>
+              <div class="bq-ask">What does <strong>everything below</strong> cost in total?</div>
+              <div class="countdown" id="cd"></div>
+              <div class="cd-label" id="cdLabel">seconds left</div>
+              <div class="sub" id="subCount"></div>
+              ${chips(true, true)}
+            </div>
+          </div>
+          <div class="parts n${d.parts.length}">${d.parts.map((p) => partCard(p, false)).join("")}</div>
+        </div>`;
+      tick();
+    }
+
+    // One page: every item with its price tag and the total on top, this round's winner and
+    // every table's guess underneath (closest without going over first, over-bids last).
+    function renderBasketReveal() {
+      const r = view.result;
+      const b = view.breakdown;
+      const sub = (t) => `<div class="br-sub">${esc(t)}</div>`;
+      const headline = view.isTiebreak
+        ? tiebreakHeadline(r) + sub(tiebreakHow(r))
+        : view.isPractice
+          ? (r.winners.length ? `🏆 Table ${r.winners.join(" & ")} would have won!` : noWinner(r)) + sub("Practice — doesn't count.")
+          : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : noWinner(r);
+      // Up to 12 guesses: rows of up to 6, big digits. More: two dense rows (20 tables -> 2 x 10).
+      const n = r.entries.length;
+      const dense = n > 12;
+      const cols = Math.max(1, dense ? Math.ceil(n / 2) : Math.ceil(n / Math.ceil(n / 6)));
+      main.innerHTML = `
+        <div class="basket-r">
+          <div class="br-head">
+            <div class="br-name">${esc(view.dish.name)}</div>
+            <div class="br-total">Total <span class="price">${formatCents(r.priceCents)}</span></div>
+          </div>
+          <div class="parts priced n${b.length}">${b.map((p) => partCard(p, true)).join("")}</div>
+          <div class="winner">${headline}</div>
+          ${n ? `<div class="guesses${dense ? " dense" : ""}" style="--g-cols:${cols}">${r.entries.map((e) => `
+            <div class="g ${e.winner ? "win" : e.over ? "over" : ""}">
+              <div class="g-t">Table ${e.table}${e.over ? ` <span class="tag">OVER</span>` : ""}</div>
+              <div class="g-p price">${formatCents(e.cents)}</div>
+            </div>`).join("")}</div>` : ""}
+        </div>`;
+    }
+
+    // No winner: either nobody answered, or every guess went over.
+    const noWinner = (r) => (r.entries.length ? "Everyone went over — no winner this round." : "No guesses this round.");
+
+    function tiebreakHeadline(r) {
+      return r.decidedBy === "again"
+        ? `⚔ Still tied! Tables ${r.lotFrom.join(" & ")} play another basket.`
+        : `🏆 Table ${r.winners[0]} wins the tiebreaker!`;
+    }
+
+    function tiebreakHow(r) {
+      if (r.decidedBy === "under") return "Closest without going over.";
+      if (r.decidedBy === "closest") return "Everyone went over — the closest guess wins.";
+      if (r.decidedBy === "again") return r.entries.length ? "Same distance from the price — one more basket decides." : "No table answered — one more basket decides.";
+      return r.lotFrom.length === r.participants.length && !r.entries.length
+        ? "No table answered — winner drawn by lot."
+        : `Still tied (Tables ${r.lotFrom.join(", ")}) — winner drawn by lot.`;
+    }
+
+    function renderTiebreakIntro() {
+      main.innerHTML = `
+        <div class="standings">
+          <h1>⚔ Tiebreaker${view.tiebreakNumber > 1 ? ` ${view.tiebreakNumber}` : ""}!</h1>
+          <p style="font-size:2.4vw">Tables <strong>${view.tiebreakTables.join(", ")}</strong> are ${view.tiebreakNumber > 1 ? "still tied" : "tied for first place"}.</p>
+          <p class="muted" style="font-size:1.8vw">One more question — only these tables answer. ${view.questionSeconds} seconds, closest without going over wins.
+            If everyone goes over, the closest guess wins; if still tied, another basket decides.</p>
+          ${chips(false, true)}
+        </div>`;
+    }
+
+    function renderReveal() {
+      if (view.breakdown) return renderBasketReveal();
+      const r = view.result;
+      const practiceNote = `<div class="muted" style="font-size:1.6vw;font-weight:400">Practice — doesn't count.</div>`;
+      const headline = view.isTiebreak
+        ? `${tiebreakHeadline(r)}<div class="muted" style="font-size:1.6vw;font-weight:400">${esc(tiebreakHow(r))}</div>`
+        : view.isPractice
+          ? (r.winners.length ? `Table ${r.winners.join(" & ")} would have won!` : noWinner(r)) + practiceNote
+        : r.winners.length ? `🏆 Table ${r.winners.join(" & ")} wins this round!` : noWinner(r);
+      main.innerHTML = `
+        <div class="reveal">
+          <div>
+            ${view.dish?.parts && !view.dish.images[0] ? `<div class="thumb basket-thumb">${basketArt(view.dish)}</div>` : ""}
+            ${view.dish?.images?.[0] ? `<div class="thumb"><img src="${esc(view.dish.images[0])}" alt="" /></div>` : ""}
+            <div class="truth">${esc(view.dish?.name ?? "")}<span class="price">${formatCents(r.priceCents)}</span></div>
+            <div class="winner">${headline}</div>
+          </div>
+          <ul class="bids">${r.entries.length ? r.entries.map((e) => `
+            <li class="${e.winner ? "win" : e.over ? "over" : ""}"><span>Table ${e.table}${e.over ? `<span class="tag">OVER</span>` : ""}</span>
+              <span class="price">${formatCents(e.cents)}</span></li>`).join("") : `<li class="muted">No guesses.</li>`}
+          </ul>
+        </div>`;
+    }
+
+    function renderStandings(final) {
+      const lead = view.leaders;
+      const champ = view.champion;
+      const rows = view.standings.filter((s) => s.wins > 0);
+      const title = final
+        ? champ ? `🏆 Table ${champ.table} is the champion!` : lead.length > 1 ? `Tie for first: Tables ${lead.join(", ")}` : "Game over"
+        : `Scoreboard — next up: round ${view.roundNumber} of ${view.totalRounds}`;
+      let note = "";
+      if (final && champ && champ.how !== "rounds") note = `Won the tiebreaker against Tables ${view.tiebreakTables.filter((t) => t !== champ.table).join(", ")}.`;
+      else if (final && !champ && view.canStartTiebreak) note = view.tiebreakResult?.decidedBy === "again"
+        ? `Still tied: Tables ${view.tiebreakResult.lotFrom.join(", ")}. Press Space for the next tiebreaker.`
+        : "Press Space for the tiebreaker — only the tied tables answer.";
+      else if (final && !champ && lead.length > 1) note = "No tiebreaker question configured — the host decides.";
+      main.innerHTML = `
+        <div class="standings">
+          <h1>${esc(title)}</h1>
+          ${note ? `<p class="muted" style="font-size:1.8vw">${esc(note)}</p>` : ""}
+          ${rows.length ? `<table>${rows.map((s) => `
+            <tr class="${s.rank === 1 ? "lead" : ""}"><td>#${s.rank}</td><td>Table ${s.table}</td>
+            <td>${s.wins} round${s.wins === 1 ? "" : "s"}</td><td class="muted">${s.roundsWon.map((n) => `R${n}`).join(" ")}</td></tr>`).join("")}
+          </table>` : `<p class="muted">No winners yet.</p>`}
+          ${final ? `<h2 style="margin-top:2vw">Round by round</h2><table>${view.roundWinners.map((w) => `
+            <tr><td>R${w.roundNumber}</td><td>${esc(w.dishName)}</td><td class="price">${formatCents(w.priceCents)}</td>
+            <td>${w.winners.length ? `Table ${w.winners.join(", ")}` : "—"}</td></tr>`).join("")}
+            ${view.tiebreakResult?.winners.length ? `<tr><td>TB</td><td>${esc(view.dish?.name ?? "Tiebreaker")}</td>
+              <td class="price">${formatCents(view.tiebreakResult.priceCents)}</td><td>Table ${view.tiebreakResult.winners[0]}</td></tr>` : ""}
+            </table>` : chips(false, true)}
+        </div>`;
+    }
+
+    function tick() {
+      if (!view || !conn) return;
+      const cd = document.getElementById("cd");
+      if (cd) {
+        const left = view.phase === "open" ? secondsLeft(view.deadline, conn.serverNow()) : 0;
+        cd.textContent = view.phase === "locked" ? "Time's up!" : left;
+        const lbl = document.getElementById("cdLabel");
+        if (lbl) lbl.style.visibility = view.phase === "open" ? "visible" : "hidden";
+        cd.classList.toggle("urgent", view.phase === "locked" || left <= 5);
+      }
+      const sc = document.getElementById("subCount");
+      if (sc) sc.textContent = `${view.submittedTables.length} of ${view.claimedTables.length} tables have answered`;
+    }
+  </script>
+</body>
+</html>
