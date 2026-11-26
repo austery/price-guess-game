@@ -186,6 +186,7 @@ basket("Soup Night Basket", [
 | `docs/spec.md` | 详细需求说明 |
 | `docs/basket-lineup.csv` | 10 个篮子的商品和价格（英文） |
 | `docs/Holiday-2026-All-Products-and-Baskets.pdf` | 杂志全部商品和 10 个篮子（英文，可分享） |
+| `docs/Guess-the-Price-Welcome-and-Rules.pptx` | 开场用的两页 PowerPoint：欢迎页（四本杂志封面）和网站版的 4 条规则 |
 | `docs/Guess-the-Price-Backup-Slides.pptx` | 后备 PowerPoint（服务器或电脑出问题时用纸笔玩）：欢迎、规则、每个篮子一页题目一页答案、感谢页 |
 | `docs/session-log/` | 按 session-summary 技能格式写的会话日志、交接说明和保存用的 JSON |
 
