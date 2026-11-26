@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local development. In production set it with:
+#   npx wrangler secret put HOST_KEY
+HOST_KEY=dev-host-key
