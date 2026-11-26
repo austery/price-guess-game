@@ -50,7 +50,7 @@
 ## 开场（大屏，主持人按空格翻页，← 返回）
 
 1. **扫码页**：二维码和网址，以及各桌加入情况。
-2. **欢迎页**：PC Insiders Report Holiday 封面扇形展开，标题 "Guess the Price! Holiday Edition"。
+2. **欢迎页**：PC Insiders Report Holiday 封面扇形展开，标题 "Price is Right! Holiday Edition"（游戏名在 `src/config.ts` 的 `title`）。
 3. **规则页**：组织者的规则精简成 4 条，每条一行，带金色编号，只有第 2 条的 "without going over" 用金色：① There are 5 baskets. Guess the total price of all the items in each basket.（原第 1–3 条合并）② The table that is closest to the total without going over wins that round! ③ The table with the most correct guesses wins a prize! ④ You have 45 seconds per basket. If you type it wrong, enter a new price before time runs out. 手机上显示同样的 4 条。
 4. 再按空格开始练习第 1 轮。
 

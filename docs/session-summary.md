@@ -1,4 +1,4 @@
-# 开发总结：节日猜价格游戏
+# 开发总结：节日猜价格游戏 Price is Right
 
 > 2026 年 11 月 7–8 日，与 Claude Code 在云端完成。
 > 仓库：<https://github.com/austery/price-guess-game>，分支 `claude/core-game-engine`，PR：<https://github.com/austery/price-guess-game/pull/1>
@@ -117,7 +117,7 @@ basket("Soup Night Basket", [
 - [ ] **在活动现场实测网络**：用几部手机扫码、作答，确认场地 Wi-Fi 或手机流量能用。程序解决不了网络问题，建议准备纸卡作为后备。
 - [ ] 主持人电脑接上投影和音响，打开声音，按空格开始后确认能听到音乐。
 - [ ] 准备好主持人密钥。
-- [ ] 把后备 PowerPoint（`docs/Guess-the-Price-Backup-Slides.pptx`）存到主持人电脑和一个 U 盘里，再准备纸和笔；万一网站用不了，就各桌写价格举牌。
+- [ ] 把后备 PowerPoint（`docs/Price-is-Right-Backup-Slides.pptx`）存到主持人电脑和一个 U 盘里，再准备纸和笔；万一网站用不了，就各桌写价格举牌。
 - [ ] 彩排完再 Reset game 一次（第二个确认框选 OK），否则正式开始时各桌已经被占用。
 - [ ] 每桌指定一个人负责手机输入。
 
@@ -169,6 +169,7 @@ basket("Soup Night Basket", [
 | 11/11 | 面包篮太简单，挪到加赛 3；节日电影夜篮升为第 2 轮；早午餐、伴手礼改为加赛 1、2 |
 | 11/11 | 练习 2 和第 2 轮对调：节日电影夜改为练习 2，节日待客主菜改为第 2 轮 |
 | 11/11 | 第 1、2 轮对调（主菜 $82 先上）；加赛 3 的面包篮换成更难的"下雪天"篮（6 样，跨服装和食品，$2 到 $19） |
+| 11/26 | 游戏名从 "Guess the Price"（当初开发时暂定的）改为 "Price is Right"，保留 "Holiday Edition"；开场 PowerPoint 只留欢迎页，规则由主持人当场讲 |
 
 ## 13. 主要文件
 
@@ -186,8 +187,8 @@ basket("Soup Night Basket", [
 | `docs/spec.md` | 详细需求说明 |
 | `docs/basket-lineup.csv` | 10 个篮子的商品和价格（英文） |
 | `docs/Holiday-2026-All-Products-and-Baskets.pdf` | 杂志全部商品和 10 个篮子（英文，可分享） |
-| `docs/Guess-the-Price-Welcome.pptx` | 开场用的一页 PowerPoint：欢迎页（四本杂志封面）；规则由主持人当场讲 |
-| `docs/Guess-the-Price-Backup-Slides.pptx` | 后备 PowerPoint（服务器或电脑出问题时用纸笔玩）：欢迎、规则、每个篮子一页题目一页答案、感谢页 |
+| `docs/Price-is-Right-Welcome.pptx` | 开场用的一页 PowerPoint：欢迎页（四本杂志封面）；规则由主持人当场讲 |
+| `docs/Price-is-Right-Backup-Slides.pptx` | 后备 PowerPoint（服务器或电脑出问题时用纸笔玩）：欢迎、规则、每个篮子一页题目一页答案、感谢页 |
 | `docs/session-log/` | 按 session-summary 技能格式写的会话日志、交接说明和保存用的 JSON |
 
 ## 14. 回顾
